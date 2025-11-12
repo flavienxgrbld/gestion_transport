@@ -4,6 +4,11 @@
  * Gère le routing simple et l'exécution des pages
  */
 
+// Afficher les erreurs temporairement pour déboguer
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 session_start();
 
 require __DIR__ . '/../src/config.php';
@@ -240,18 +245,25 @@ if ($path === '/utilisateurs/create' && $method === 'POST') {
         exit;
     }
     
-    $db = get_db();
-    $nom = $_POST['nom'] ?? '';
-    $prenom = $_POST['prenom'] ?? '';
-    $email = $_POST['email'] ?? '';
-    $password = $_POST['password'] ?? '';
-    $role = $_POST['role'] ?? 'user';
-    $organisation_id = $_POST['organisation_id'] ?? null;
-    
-    if ($nom && $prenom && $email && $password && $organisation_id) {
-        $password_hash = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $db->prepare('INSERT INTO users (nom, prenom, email, password, role, organisation_id) VALUES (?, ?, ?, ?, ?, ?)');
-        $stmt->execute([$nom, $prenom, $email, $password_hash, $role, $organisation_id]);
+    try {
+        $db = get_db();
+        $nom = $_POST['nom'] ?? '';
+        $prenom = $_POST['prenom'] ?? '';
+        $email = $_POST['email'] ?? '';
+        $password = $_POST['password'] ?? '';
+        $role = $_POST['role'] ?? 'user';
+        $organisation_id = $_POST['organisation_id'] ?? null;
+        
+        if ($nom && $prenom && $email && $password && $organisation_id) {
+            $password_hash = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $db->prepare('INSERT INTO users (nom, prenom, email, password, role, organisation_id) VALUES (?, ?, ?, ?, ?, ?)');
+            $stmt->execute([$nom, $prenom, $email, $password_hash, $role, $organisation_id]);
+            $_SESSION['success'] = 'Utilisateur créé avec succès';
+        } else {
+            $_SESSION['error'] = 'Tous les champs sont requis';
+        }
+    } catch (Exception $e) {
+        $_SESSION['error'] = 'Erreur: ' . $e->getMessage();
     }
     
     header('Location: /utilisateurs');

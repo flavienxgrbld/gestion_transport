@@ -839,6 +839,73 @@ if ($path === '/admin/sessions/create' && $method === 'POST' && current_user()['
     exit;
 }
 
+// Route: admin - gérer les présences d'une session (GET)
+if (preg_match('#^/admin/sessions/(\d+)/presences$#', $path, $matches) && current_user()['role'] === 'admin') {
+    $session_id = $matches[1];
+    $db = get_db();
+    
+    // Récupérer la session avec le titre de la formation
+    $stmt = $db->prepare("
+        SELECT s.*, f.titre as formation_titre
+        FROM sessions_formation s
+        JOIN formations f ON s.formation_id = f.id
+        WHERE s.id = ?
+    ");
+    $stmt->execute([$session_id]);
+    $session = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$session) {
+        http_response_code(404);
+        echo "Session introuvable";
+        exit;
+    }
+    
+    // Récupérer tous les inscrits avec leurs informations
+    $stmt = $db->prepare("
+        SELECT i.id as inscription_id, i.presence, i.note_qcm, i.resultat, i.inscrit_le,
+               u.id as user_id, u.nom, u.prenom, u.email,
+               o.nom as organisation_nom
+        FROM inscriptions_formation i
+        JOIN users u ON i.user_id = u.id
+        JOIN organisations o ON u.organisation_id = o.id
+        WHERE i.session_id = ?
+        ORDER BY u.nom, u.prenom
+    ");
+    $stmt->execute([$session_id]);
+    $inscrits = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    if ($method === 'POST') {
+        // Traiter la mise à jour des présences
+        $presences = $_POST['presences'] ?? [];
+        
+        try {
+            $db->beginTransaction();
+            
+            // Pour chaque inscrit, mettre à jour sa présence
+            foreach ($inscrits as $inscrit) {
+                $inscription_id = $inscrit['inscription_id'];
+                $is_present = isset($presences[$inscription_id]);
+                $presence_value = $is_present ? 'present' : 'absent';
+                
+                $stmt = $db->prepare("UPDATE inscriptions_formation SET presence = ? WHERE id = ?");
+                $stmt->execute([$presence_value, $inscription_id]);
+            }
+            
+            $db->commit();
+            $_SESSION['success'] = 'Présences enregistrées avec succès';
+            header('Location: /admin/sessions/' . $session_id . '/presences');
+            exit;
+            
+        } catch (Exception $e) {
+            $db->rollBack();
+            $_SESSION['error'] = 'Erreur lors de l\'enregistrement : ' . $e->getMessage();
+        }
+    }
+    
+    require __DIR__ . '/../templates/admin_session_presences.php';
+    exit;
+}
+
 // 404 par défaut
 http_response_code(404);
 echo "Page non trouvée";

@@ -21,6 +21,7 @@ ob_start();
           <th>Formateur</th>
           <th>Inscrits / Places</th>
           <th>Statut</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -52,6 +53,15 @@ ob_start();
               <span class="badge" style="<?php echo $color; ?>">
                 <?php echo ucfirst(str_replace('_', ' ', $s['statut'])); ?>
               </span>
+            </td>
+            <td>
+              <?php if ($s['nb_inscrits'] > 0): ?>
+                <a href="/admin/sessions/<?php echo $s['id']; ?>/presences" class="btn btn-primary btn-sm">
+                  👥 Présences (<?php echo $s['nb_inscrits']; ?>)
+                </a>
+              <?php else: ?>
+                <span class="muted" style="font-size:13px">Aucun inscrit</span>
+              <?php endif; ?>
             </td>
           </tr>
         <?php endforeach; ?>
@@ -127,6 +137,10 @@ ob_start();
   background: white;
   border-radius: 8px;
   overflow: hidden;
+}
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 14px;
 }
 </style>
 

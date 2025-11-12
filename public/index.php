@@ -461,6 +461,240 @@ if ($path === '/sanctions') {
     exit;
 }
 
+// Route: catalogue des formations
+if ($path === '/formations') {
+    $user = current_user();
+    $db = get_db();
+    
+    $stmt = $db->query("SELECT * FROM formations WHERE statut = 'active' ORDER BY type, titre");
+    $formations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Récupère les formations de l'utilisateur avec statut
+    $stmt = $db->prepare("
+        SELECT f.id as formation_id, f.titre, f.validite_mois, f.type,
+               i.resultat, i.date_expiration, i.certificat_delivre
+        FROM inscriptions_formation i
+        JOIN sessions_formation s ON i.session_id = s.id
+        JOIN formations f ON s.formation_id = f.id
+        WHERE i.user_id = ? AND i.resultat = 'reussi'
+        ORDER BY i.date_certificat DESC
+    ");
+    $stmt->execute([$user['id']]);
+    $mes_formations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    require __DIR__ . '/../templates/formations.php';
+    exit;
+}
+
+// Route: détail d'une formation + sessions disponibles
+if (preg_match('#^/formations/(\d+)$#', $path, $matches)) {
+    $formation_id = $matches[1];
+    $user = current_user();
+    $db = get_db();
+    
+    $stmt = $db->prepare("SELECT * FROM formations WHERE id = ?");
+    $stmt->execute([$formation_id]);
+    $formation = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$formation) {
+        http_response_code(404);
+        echo "Formation introuvable";
+        exit;
+    }
+    
+    // Sessions disponibles
+    $stmt = $db->prepare("
+        SELECT * FROM sessions_formation 
+        WHERE formation_id = ? AND statut IN ('planifiee', 'en_cours')
+        ORDER BY date_debut
+    ");
+    $stmt->execute([$formation_id]);
+    $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Vérifier si l'utilisateur est déjà inscrit
+    $stmt = $db->prepare("
+        SELECT i.*, s.date_debut, s.date_fin 
+        FROM inscriptions_formation i
+        JOIN sessions_formation s ON i.session_id = s.id
+        WHERE i.user_id = ? AND s.formation_id = ?
+        ORDER BY i.inscrit_le DESC
+        LIMIT 1
+    ");
+    $stmt->execute([$user['id'], $formation_id]);
+    $mon_inscription = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    require __DIR__ . '/../templates/formation_detail.php';
+    exit;
+}
+
+// Route: passer le QCM d'une formation
+if (preg_match('#^/formations/(\d+)/qcm$#', $path, $matches)) {
+    $formation_id = $matches[1];
+    $user = current_user();
+    $db = get_db();
+    
+    // Vérifier que l'utilisateur a une inscription active
+    $stmt = $db->prepare("
+        SELECT i.*, s.formation_id, f.questions_qcm, f.note_passage, f.titre
+        FROM inscriptions_formation i
+        JOIN sessions_formation s ON i.session_id = s.id
+        JOIN formations f ON s.formation_id = f.id
+        WHERE i.user_id = ? AND s.formation_id = ? AND i.presence = 'present' AND i.resultat = 'en_attente'
+        ORDER BY i.inscrit_le DESC
+        LIMIT 1
+    ");
+    $stmt->execute([$user['id'], $formation_id]);
+    $inscription = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$inscription) {
+        $_SESSION['error'] = "Vous devez d'abord participer à une session de formation";
+        header('Location: /formations/' . $formation_id);
+        exit;
+    }
+    
+    if ($method === 'POST') {
+        // Correction du QCM
+        $questions = json_decode($inscription['questions_qcm'], true);
+        $score = 0;
+        $total = count($questions);
+        
+        foreach ($questions as $index => $question) {
+            $reponse_user = (int)($_POST['question_' . $index] ?? -1);
+            if ($reponse_user === $question['correct']) {
+                $score++;
+            }
+        }
+        
+        $note = round(($score / $total) * 100);
+        $resultat = $note >= $inscription['note_passage'] ? 'reussi' : 'echoue';
+        
+        // Calculer la date d'expiration si réussi
+        $date_expiration = null;
+        if ($resultat === 'reussi') {
+            $stmt = $db->prepare("SELECT validite_mois FROM formations WHERE id = ?");
+            $stmt->execute([$formation_id]);
+            $formation = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($formation['validite_mois']) {
+                $date_expiration = date('Y-m-d', strtotime('+' . $formation['validite_mois'] . ' months'));
+            }
+        }
+        
+        // Mise à jour de l'inscription
+        $stmt = $db->prepare("
+            UPDATE inscriptions_formation 
+            SET note_qcm = ?, resultat = ?, certificat_delivre = ?, date_certificat = ?, date_expiration = ?
+            WHERE id = ?
+        ");
+        $delivre = $resultat === 'reussi' ? 1 : 0;
+        $date_cert = $resultat === 'reussi' ? date('Y-m-d') : null;
+        $stmt->execute([$note, $resultat, $delivre, $date_cert, $date_expiration, $inscription['id']]);
+        
+        $_SESSION['qcm_result'] = [
+            'note' => $note,
+            'resultat' => $resultat,
+            'score' => $score,
+            'total' => $total
+        ];
+        
+        header('Location: /formations/' . $formation_id);
+        exit;
+    }
+    
+    $formation = [
+        'id' => $formation_id,
+        'titre' => $inscription['titre'],
+        'questions' => json_decode($inscription['questions_qcm'], true),
+        'note_passage' => $inscription['note_passage']
+    ];
+    
+    require __DIR__ . '/../templates/formation_qcm.php';
+    exit;
+}
+
+// Route: s'inscrire à une session (POST)
+if (preg_match('#^/sessions/(\d+)/inscrire$#', $path, $matches) && $method === 'POST') {
+    $session_id = $matches[1];
+    $user = current_user();
+    $db = get_db();
+    
+    try {
+        $db->beginTransaction();
+        
+        // Vérifier les places disponibles
+        $stmt = $db->prepare("SELECT * FROM sessions_formation WHERE id = ? FOR UPDATE");
+        $stmt->execute([$session_id]);
+        $session = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$session || $session['places_restantes'] <= 0) {
+            throw new Exception("Plus de places disponibles");
+        }
+        
+        // Inscription
+        $stmt = $db->prepare("INSERT INTO inscriptions_formation (session_id, user_id) VALUES (?, ?)");
+        $stmt->execute([$session_id, $user['id']]);
+        
+        // Décrémenter les places
+        $stmt = $db->prepare("UPDATE sessions_formation SET places_restantes = places_restantes - 1 WHERE id = ?");
+        $stmt->execute([$session_id]);
+        
+        $db->commit();
+        $_SESSION['success'] = 'Inscription confirmée';
+    } catch (Exception $e) {
+        $db->rollBack();
+        $_SESSION['error'] = $e->getMessage();
+    }
+    
+    header('Location: /formations/' . $session['formation_id']);
+    exit;
+}
+
+// Route: admin - gérer les sessions
+if ($path === '/admin/sessions' && current_user()['role'] === 'admin') {
+    $db = get_db();
+    
+    $stmt = $db->query("
+        SELECT s.*, f.titre as formation_titre, 
+               COUNT(i.id) as nb_inscrits
+        FROM sessions_formation s
+        JOIN formations f ON s.formation_id = f.id
+        LEFT JOIN inscriptions_formation i ON s.id = i.session_id
+        GROUP BY s.id
+        ORDER BY s.date_debut DESC
+    ");
+    $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $stmt = $db->query("SELECT * FROM formations WHERE statut = 'active' ORDER BY titre");
+    $formations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    require __DIR__ . '/../templates/admin_sessions.php';
+    exit;
+}
+
+// Route: admin - créer une session
+if ($path === '/admin/sessions/create' && $method === 'POST' && current_user()['role'] === 'admin') {
+    $db = get_db();
+    
+    $formation_id = $_POST['formation_id'] ?? null;
+    $date_debut = $_POST['date_debut'] ?? null;
+    $date_fin = $_POST['date_fin'] ?? null;
+    $lieu = $_POST['lieu'] ?? '';
+    $formateur = $_POST['formateur'] ?? '';
+    $places_max = (int)($_POST['places_max'] ?? 20);
+    
+    if ($formation_id && $date_debut && $date_fin && $lieu && $formateur) {
+        $stmt = $db->prepare("
+            INSERT INTO sessions_formation (formation_id, date_debut, date_fin, lieu, formateur, places_max, places_restantes)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([$formation_id, $date_debut, $date_fin, $lieu, $formateur, $places_max, $places_max]);
+        $_SESSION['success'] = 'Session créée';
+    }
+    
+    header('Location: /admin/sessions');
+    exit;
+}
+
 // 404 par défaut
 http_response_code(404);
 echo "Page non trouvée";

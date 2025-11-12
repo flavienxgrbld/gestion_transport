@@ -5,6 +5,11 @@ USE gestion_convois;
 SET NAMES utf8mb4;
 SET CHARACTER SET utf8mb4;
 
+-- Supprimer les tables si elles existent déjà (dans le bon ordre à cause des clés étrangères)
+DROP TABLE IF EXISTS inscriptions_formation;
+DROP TABLE IF EXISTS sessions_formation;
+DROP TABLE IF EXISTS formations;
+
 -- Table des formations (catalogue)
 CREATE TABLE formations (
   id INT AUTO_INCREMENT PRIMARY KEY,

@@ -42,6 +42,71 @@ if (!is_logged_in()) {
     exit;
 }
 
+// Route: mon profil
+if ($path === '/profil') {
+    $user = current_user();
+    $db = get_db();
+    
+    // Récupérer les infos complètes de l'utilisateur
+    $stmt = $db->prepare('SELECT u.*, o.nom as organisation_nom FROM users u JOIN organisations o ON u.organisation_id = o.id WHERE u.id = ?');
+    $stmt->execute([$user['id']]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Statistiques
+    $stmt = $db->prepare('SELECT COUNT(*) as total FROM convois WHERE operateur_id = ?');
+    $stmt->execute([$user['id']]);
+    $total_convois = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM sanctions WHERE user_id = ? AND statut = 'active'");
+    $stmt->execute([$user['id']]);
+    $total_sanctions_actives = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM inscriptions_formation WHERE user_id = ? AND resultat = 'reussi'");
+    $stmt->execute([$user['id']]);
+    $formations_validees = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM inscriptions_formation WHERE user_id = ? AND resultat = 'reussi' AND date_expiration IS NOT NULL AND date_expiration < NOW()");
+    $stmt->execute([$user['id']]);
+    $formations_expirees = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    $stats = [
+        'total_convois' => $total_convois,
+        'total_sanctions_actives' => $total_sanctions_actives,
+        'formations_validees' => $formations_validees,
+        'formations_expirees' => $formations_expirees
+    ];
+    
+    // Formations validées
+    $stmt = $db->prepare("
+        SELECT f.id as formation_id, f.titre, f.type, f.validite_mois, i.date_certificat, i.date_expiration
+        FROM inscriptions_formation i
+        JOIN sessions_formation s ON i.session_id = s.id
+        JOIN formations f ON s.formation_id = f.id
+        WHERE i.user_id = ? AND i.resultat = 'reussi'
+        ORDER BY i.date_certificat DESC
+    ");
+    $stmt->execute([$user['id']]);
+    $formations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Sanctions actives
+    $stmt = $db->prepare("
+        SELECT s.*
+        FROM sanctions s
+        WHERE s.user_id = ? AND s.statut = 'active'
+        ORDER BY s.date_sanction DESC
+    ");
+    $stmt->execute([$user['id']]);
+    $sanctions_actives = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Derniers convois
+    $stmt = $db->prepare('SELECT * FROM convois WHERE operateur_id = ? ORDER BY created_at DESC LIMIT 5');
+    $stmt->execute([$user['id']]);
+    $derniers_convois = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    require __DIR__ . '/../templates/mon_profil.php';
+    exit;
+}
+
 // Route: dashboard principal
 if ($path === '/dashboard') {
     $db = get_db();
@@ -304,6 +369,85 @@ if (preg_match('#^/utilisateurs/(\d+)/delete$#', $path, $matches) && $method ===
     $stmt->execute([$user_id]);
     
     header('Location: /utilisateurs');
+    exit;
+}
+
+// Route: voir le détail d'un utilisateur (admin uniquement) - DOIT être avant /utilisateurs
+if (preg_match('#^/utilisateurs/(\d+)$#', $path, $matches)) {
+    $user = current_user();
+    if ($user['role'] !== 'admin') {
+        http_response_code(403);
+        echo "Accès refusé";
+        exit;
+    }
+    
+    $user_id = $matches[1];
+    $db = get_db();
+    
+    // Récupérer l'utilisateur
+    $stmt = $db->prepare('SELECT u.*, o.nom as organisation_nom FROM users u JOIN organisations o ON u.organisation_id = o.id WHERE u.id = ?');
+    $stmt->execute([$user_id]);
+    $utilisateur = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$utilisateur) {
+        http_response_code(404);
+        echo "Utilisateur introuvable";
+        exit;
+    }
+    
+    // Statistiques
+    $stmt = $db->prepare('SELECT COUNT(*) as total FROM convois WHERE operateur_id = ?');
+    $stmt->execute([$user_id]);
+    $total_convois = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM sanctions WHERE user_id = ? AND statut = 'active'");
+    $stmt->execute([$user_id]);
+    $total_sanctions_actives = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM sanctions WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    $total_sanctions = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM inscriptions_formation WHERE user_id = ? AND resultat = 'reussi'");
+    $stmt->execute([$user_id]);
+    $formations_validees = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    $stats = [
+        'total_convois' => $total_convois,
+        'total_sanctions_actives' => $total_sanctions_actives,
+        'total_sanctions' => $total_sanctions,
+        'formations_validees' => $formations_validees
+    ];
+    
+    // Formations validées
+    $stmt = $db->prepare("
+        SELECT f.titre, f.type, f.validite_mois, i.date_certificat, i.date_expiration
+        FROM inscriptions_formation i
+        JOIN sessions_formation s ON i.session_id = s.id
+        JOIN formations f ON s.formation_id = f.id
+        WHERE i.user_id = ? AND i.resultat = 'reussi'
+        ORDER BY i.date_certificat DESC
+    ");
+    $stmt->execute([$user_id]);
+    $formations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Sanctions
+    $stmt = $db->prepare("
+        SELECT s.*, c.type as convoi_type
+        FROM sanctions s
+        JOIN convois c ON s.convoi_id = c.id
+        WHERE s.user_id = ?
+        ORDER BY s.date_sanction DESC
+    ");
+    $stmt->execute([$user_id]);
+    $sanctions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Derniers convois opérés
+    $stmt = $db->prepare('SELECT * FROM convois WHERE operateur_id = ? ORDER BY created_at DESC LIMIT 10');
+    $stmt->execute([$user_id]);
+    $derniers_convois = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    require __DIR__ . '/../templates/utilisateur_detail.php';
     exit;
 }
 

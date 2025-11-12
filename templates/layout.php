@@ -169,6 +169,27 @@
       font-weight: bold;
       color: #1f4f8b;
     }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 24px;
+    }
+    .btn-primary {
+      background: #1f4f8b;
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #163a6a;
+    }
+    .btn-secondary {
+      background: #6c757d;
+      color: #fff;
+    }
+    .btn-secondary:hover {
+      background: #5a6268;
+    }
   </style>
 </head>
 <body>
@@ -177,7 +198,7 @@
       <div class="nav-brand">Gestion Convois - BRINKS</div>
       <div class="nav-links">
         <?php if (is_logged_in()): ?>
-          <span style="margin-right:15px">👤 <?php echo htmlspecialchars(current_user()['nom'] ?? current_user()['email']); ?></span>
+          <a href="/profil" style="margin-right:15px;font-weight:600">👤 <?php echo htmlspecialchars(current_user()['nom'] ?? current_user()['email']); ?></a>
           <a href="/dashboard">Dashboard</a>
           <a href="/convois">Convois</a>
           <a href="/coffre">Coffre</a>

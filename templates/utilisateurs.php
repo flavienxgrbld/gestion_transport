@@ -46,14 +46,15 @@ ob_start();
             <td><?php echo htmlspecialchars($u['organisation_nom']); ?></td>
             <td><?php echo date('d/m/Y', strtotime($u['created_at'])); ?></td>
             <td>
+              <a href="/utilisateurs/<?php echo $u['id']; ?>" class="btn btn-primary btn-sm" style="margin-right:8px">
+                👤 Profil
+              </a>
               <?php if ($u['id'] != current_user()['id']): ?>
                 <form method="post" action="/utilisateurs/<?php echo $u['id']; ?>/delete" style="display:inline">
                   <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Supprimer cet utilisateur ?')">
-                    Supprimer
+                    🗑️ Supprimer
                   </button>
                 </form>
-              <?php else: ?>
-                <span class="muted">Vous</span>
               <?php endif; ?>
             </td>
           </tr>

@@ -21,6 +21,7 @@ CREATE TABLE users (
   password VARCHAR(255) NOT NULL COMMENT 'bcrypt hash',
   role ENUM('admin','user') NOT NULL DEFAULT 'user',
   nom VARCHAR(150),
+  prenom VARCHAR(150),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (organisation_id) REFERENCES organisations(id) ON DELETE RESTRICT

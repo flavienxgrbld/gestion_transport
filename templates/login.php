@@ -35,11 +35,6 @@ ob_start();
     </div>
   </form>
   
-  <div class="muted" style="margin-top:20px">
-    <strong>Compte par défaut :</strong><br>
-    Email : admin@brinks.local<br>
-    Mot de passe : Admin123!
-  </div>
 </div>
 
 <?php

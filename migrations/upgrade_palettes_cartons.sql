@@ -26,8 +26,8 @@ ALTER TABLE convois
   ADD COLUMN quantite_cartons_entree INT DEFAULT 0 AFTER quantite_palettes_sortie,
   ADD COLUMN quantite_cartons_sortie INT DEFAULT 0 AFTER quantite_cartons_entree;
 
--- Commentaires pour documentation
-COMMENT ON COLUMN convois.quantite_palettes_entree IS 'Palettes ajoutées au coffre (récolte)';
-COMMENT ON COLUMN convois.quantite_palettes_sortie IS 'Palettes retirées du coffre (traitement)';
-COMMENT ON COLUMN convois.quantite_cartons_entree IS 'Cartons ajoutés au coffre (traitement)';
-COMMENT ON COLUMN convois.quantite_cartons_sortie IS 'Cartons retirés du coffre (revente)';
+-- Commentaires pour documentation (syntaxe MariaDB)
+ALTER TABLE convois MODIFY COLUMN quantite_palettes_entree INT DEFAULT 0 COMMENT 'Palettes ajoutées au coffre (récolte)';
+ALTER TABLE convois MODIFY COLUMN quantite_palettes_sortie INT DEFAULT 0 COMMENT 'Palettes retirées du coffre (traitement)';
+ALTER TABLE convois MODIFY COLUMN quantite_cartons_entree INT DEFAULT 0 COMMENT 'Cartons ajoutés au coffre (traitement)';
+ALTER TABLE convois MODIFY COLUMN quantite_cartons_sortie INT DEFAULT 0 COMMENT 'Cartons retirés du coffre (revente)';

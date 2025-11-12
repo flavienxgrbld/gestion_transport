@@ -206,6 +206,7 @@
           <a href="/sanctions">Sanctions</a>
           <?php if (current_user()['role'] === 'admin'): ?>
             <a href="/utilisateurs">Utilisateurs</a>
+            <a href="/admin/formations">Formations</a>
             <a href="/admin/sessions">Sessions</a>
           <?php endif; ?>
           <a href="/logout">Déconnexion</a>

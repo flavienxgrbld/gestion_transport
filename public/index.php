@@ -839,6 +839,53 @@ if ($path === '/admin/sessions/create' && $method === 'POST' && current_user()['
     exit;
 }
 
+// Route: admin - gérer les formations (GET)
+if ($path === '/admin/formations' && current_user()['role'] === 'admin') {
+    $db = get_db();
+    
+    $stmt = $db->query("SELECT * FROM formations ORDER BY type, titre");
+    $formations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    require __DIR__ . '/../templates/admin_formations.php';
+    exit;
+}
+
+// Route: admin - créer une formation (POST)
+if ($path === '/admin/formations/create' && $method === 'POST' && current_user()['role'] === 'admin') {
+    $db = get_db();
+    
+    $titre = $_POST['titre'] ?? '';
+    $description = $_POST['description'] ?? '';
+    $duree_heures = (int)($_POST['duree_heures'] ?? 0);
+    $type = $_POST['type'] ?? 'obligatoire';
+    $validite_mois = $_POST['validite_mois'] ? (int)$_POST['validite_mois'] : null;
+    $contenu_formation = $_POST['contenu_formation'] ?? '';
+    $questions_qcm = $_POST['questions_qcm'] ?? '';
+    $note_passage = (int)($_POST['note_passage'] ?? 70);
+    
+    if ($titre && $description && $duree_heures && $contenu_formation && $questions_qcm) {
+        // Valider que questions_qcm est du JSON valide
+        $questions_array = json_decode($questions_qcm, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $_SESSION['error'] = 'Le format des questions QCM est invalide (JSON attendu)';
+            header('Location: /admin/formations');
+            exit;
+        }
+        
+        $stmt = $db->prepare("
+            INSERT INTO formations (titre, description, duree_heures, type, validite_mois, contenu_formation, questions_qcm, note_passage)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([$titre, $description, $duree_heures, $type, $validite_mois, $contenu_formation, $questions_qcm, $note_passage]);
+        $_SESSION['success'] = 'Formation créée avec succès';
+    } else {
+        $_SESSION['error'] = 'Tous les champs obligatoires doivent être remplis';
+    }
+    
+    header('Location: /admin/formations');
+    exit;
+}
+
 // Route: admin - gérer les présences d'une session (GET)
 if (preg_match('#^/admin/sessions/(\d+)/presences$#', $path, $matches) && current_user()['role'] === 'admin') {
     $session_id = $matches[1];

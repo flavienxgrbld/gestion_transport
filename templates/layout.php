@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Gestion Convois - BRINKS</title>
+  <title>BRINKS</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -202,7 +202,7 @@
           <a href="/dashboard">Dashboard</a>
           <a href="/convois">Convois</a>
           <a href="/coffre">Coffre</a>
-          <a href="/formations">Catalogue</a>
+          <a href="/formations">Formations</a>
           <a href="/sanctions">Sanctions</a>
           <?php if (current_user()['role'] === 'admin'): ?>
             <a href="/utilisateurs">Utilisateurs</a>

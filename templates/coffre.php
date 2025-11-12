@@ -4,10 +4,18 @@ ob_start();
 
 <h2>Coffre : <?php echo htmlspecialchars($coffre['nom']); ?></h2>
 
-<div class="stat-card" style="margin-bottom:30px;max-width:400px">
-  <div class="stat-label">Quantité actuelle en stock</div>
-  <div class="stat-value"><?php echo (int)$coffre['quantite_actuelle']; ?></div>
-  <div class="muted">palettes/cartons disponibles</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:30px;max-width:600px">
+  <div class="stat-card">
+    <div class="stat-label">Palettes en stock</div>
+    <div class="stat-value"><?php echo (int)($coffre['quantite_palettes'] ?? 0); ?></div>
+    <div class="muted">unités disponibles</div>
+  </div>
+  
+  <div class="stat-card">
+    <div class="stat-label">Cartons en stock</div>
+    <div class="stat-value"><?php echo (int)($coffre['quantite_cartons'] ?? 0); ?></div>
+    <div class="muted">unités disponibles</div>
+  </div>
 </div>
 
 <h3>Historique des mouvements</h3>
@@ -22,6 +30,7 @@ ob_start();
         <th>Convoi</th>
         <th>Type convoi</th>
         <th>Type mouvement</th>
+        <th>Unité</th>
         <th>Quantité</th>
         <th>Note</th>
       </tr>
@@ -39,6 +48,7 @@ ob_start();
               <span style="color:#d9534f">➖ Retrait</span>
             <?php endif; ?>
           </td>
+          <td><?php echo ucfirst($m['unite'] ?? 'palette'); ?></td>
           <td><strong><?php echo (int)$m['quantite']; ?></strong></td>
           <td class="muted"><?php echo htmlspecialchars($m['note'] ?? '-'); ?></td>
         </tr>

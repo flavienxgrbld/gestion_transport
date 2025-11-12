@@ -116,68 +116,91 @@ if (preg_match('#^/convois/(\d+)/close$#', $path, $m)) {
         exit;
     }
     
-    $quantite_realisee = (int)($_POST['quantite_realisee'] ?? 0);
-    $note = $_POST['note'] ?? null;
-    
     $db = get_db();
     
-    // Transaction pour garantir cohérence des données
     try {
         $db->beginTransaction();
         
-        // Verrouille le convoi
         $stmt = $db->prepare('SELECT * FROM convois WHERE id = ? FOR UPDATE');
         $stmt->execute([$id]);
         $convoi = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if (!$convoi) {
-            throw new Exception('Convoi introuvable');
-        }
-        
-        if ($convoi['statut'] === 'termine') {
-            throw new Exception('Convoi déjà clôturé');
-        }
+        if (!$convoi) throw new Exception('Convoi introuvable');
+        if ($convoi['statut'] === 'termine') throw new Exception('Convoi déjà clôturé');
 
-        // Détermine le type de mouvement
-        $type = ($convoi['type'] === 'recolte') ? 'ajout' : 'retrait';
-
-        // Verrouille le coffre
         $stmt = $db->query('SELECT * FROM coffre LIMIT 1 FOR UPDATE');
         $coffre = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$coffre) {
-            throw new Exception('Coffre introuvable');
+        if (!$coffre) throw new Exception('Coffre introuvable');
+
+        // LOGIQUE SELON LE TYPE DE CONVOI
+        if ($convoi['type'] === 'recolte') {
+            // RÉCOLTE : ajoute des PALETTES
+            $qte_palettes = (int)($_POST['quantite_palettes'] ?? 0);
+            $note = $_POST['note'] ?? null;
+            
+            $new_palettes = $coffre['quantite_palettes'] + $qte_palettes;
+            
+            $stmt = $db->prepare('INSERT INTO mouvements (convoi_id, type, quantite, unite, note) VALUES (?, ?, ?, ?, ?)');
+            $stmt->execute([$id, 'ajout', $qte_palettes, 'palette', $note]);
+            
+            $stmt = $db->prepare('UPDATE coffre SET quantite_palettes = ? WHERE id = ?');
+            $stmt->execute([$new_palettes, $coffre['id']]);
+            
+            $stmt = $db->prepare('UPDATE convois SET quantite_realisee = ?, quantite_palettes_entree = ?, statut = "termine", date_terminated = NOW(), operateur_id = ? WHERE id = ?');
+            $stmt->execute([$qte_palettes, $qte_palettes, current_user()['id'], $id]);
+            
+        } elseif ($convoi['type'] === 'traitement') {
+            // TRAITEMENT : retire des PALETTES et ajoute des CARTONS
+            $qte_palettes_sortie = (int)($_POST['quantite_palettes'] ?? 0);
+            $qte_cartons_entree = (int)($_POST['quantite_cartons'] ?? 0);
+            $note = $_POST['note'] ?? null;
+            
+            if ($coffre['quantite_palettes'] < $qte_palettes_sortie) {
+                throw new Exception('Palettes insuffisantes (stock: ' . $coffre['quantite_palettes'] . ', demandé: ' . $qte_palettes_sortie . ')');
+            }
+            
+            $new_palettes = $coffre['quantite_palettes'] - $qte_palettes_sortie;
+            $new_cartons = $coffre['quantite_cartons'] + $qte_cartons_entree;
+            
+            $stmt = $db->prepare('INSERT INTO mouvements (convoi_id, type, quantite, unite, note) VALUES (?, ?, ?, ?, ?)');
+            $stmt->execute([$id, 'retrait', $qte_palettes_sortie, 'palette', 'Sortie pour traitement']);
+            
+            $stmt = $db->prepare('INSERT INTO mouvements (convoi_id, type, quantite, unite, note) VALUES (?, ?, ?, ?, ?)');
+            $stmt->execute([$id, 'ajout', $qte_cartons_entree, 'carton', $note]);
+            
+            $stmt = $db->prepare('UPDATE coffre SET quantite_palettes = ?, quantite_cartons = ? WHERE id = ?');
+            $stmt->execute([$new_palettes, $new_cartons, $coffre['id']]);
+            
+            $stmt = $db->prepare('UPDATE convois SET quantite_realisee = ?, quantite_palettes_sortie = ?, quantite_cartons_entree = ?, statut = "termine", date_terminated = NOW(), operateur_id = ? WHERE id = ?');
+            $stmt->execute([$qte_cartons_entree, $qte_palettes_sortie, $qte_cartons_entree, current_user()['id'], $id]);
+            
+        } elseif ($convoi['type'] === 'revente') {
+            // REVENTE : retire des CARTONS
+            $qte_cartons = (int)($_POST['quantite_cartons'] ?? 0);
+            $note = $_POST['note'] ?? null;
+            
+            if ($coffre['quantite_cartons'] < $qte_cartons) {
+                throw new Exception('Cartons insuffisants (stock: ' . $coffre['quantite_cartons'] . ', demandé: ' . $qte_cartons . ')');
+            }
+            
+            $new_cartons = $coffre['quantite_cartons'] - $qte_cartons;
+            
+            $stmt = $db->prepare('INSERT INTO mouvements (convoi_id, type, quantite, unite, note) VALUES (?, ?, ?, ?, ?)');
+            $stmt->execute([$id, 'retrait', $qte_cartons, 'carton', $note]);
+            
+            $stmt = $db->prepare('UPDATE coffre SET quantite_cartons = ? WHERE id = ?');
+            $stmt->execute([$new_cartons, $coffre['id']]);
+            
+            $stmt = $db->prepare('UPDATE convois SET quantite_realisee = ?, quantite_cartons_sortie = ?, statut = "termine", date_terminated = NOW(), operateur_id = ? WHERE id = ?');
+            $stmt->execute([$qte_cartons, $qte_cartons, current_user()['id'], $id]);
         }
-
-        // Calcule la nouvelle quantité
-        $newQuantite = $coffre['quantite_actuelle'] + (($type === 'ajout') ? $quantite_realisee : -$quantite_realisee);
-        
-        if ($newQuantite < 0) {
-            throw new Exception('Impossible de clôturer : quantité insuffisante dans le coffre (stock actuel: ' . $coffre['quantite_actuelle'] . ', demandé: ' . $quantite_realisee . ')');
-        }
-
-        // Insère le mouvement
-        $stmt = $db->prepare('INSERT INTO mouvements (convoi_id, type, quantite, note) VALUES (?, ?, ?, ?)');
-        $stmt->execute([$id, $type, $quantite_realisee, $note]);
-
-        // Met à jour le coffre
-        $stmt = $db->prepare('UPDATE coffre SET quantite_actuelle = ? WHERE id = ?');
-        $stmt->execute([$newQuantite, $coffre['id']]);
-
-        // Met à jour le convoi
-        $stmt = $db->prepare('UPDATE convois SET quantite_realisee = ?, statut = "termine", date_terminated = NOW(), operateur_id = ? WHERE id = ?');
-        $stmt->execute([$quantite_realisee, current_user()['id'], $id]);
 
         $db->commit();
-        
         header('Location: /convois/' . $id);
         exit;
         
     } catch (Exception $e) {
-        if ($db->inTransaction()) {
-            $db->rollBack();
-        }
-        
+        if ($db->inTransaction()) $db->rollBack();
         $_SESSION['error'] = $e->getMessage();
         header('Location: /convois/' . $id);
         exit;

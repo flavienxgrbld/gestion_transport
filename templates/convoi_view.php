@@ -29,9 +29,18 @@ ob_start();
   <div>
     <h3>Quantités</h3>
     <p><strong>Quantité prévue :</strong> <?php echo (int)$convoi['quantite_prevue']; ?></p>
-    <p><strong>Quantité réalisée :</strong> 
-      <?php echo $convoi['quantite_realisee'] !== null ? (int)$convoi['quantite_realisee'] : 'Non clôturé'; ?>
-    </p>
+    
+    <?php if ($convoi['statut'] === 'termine'): ?>
+      <?php if ($convoi['type'] === 'recolte'): ?>
+        <p><strong>Palettes récoltées :</strong> <?php echo (int)($convoi['quantite_palettes_entree'] ?? 0); ?></p>
+      <?php elseif ($convoi['type'] === 'traitement'): ?>
+        <p><strong>Palettes traitées :</strong> <?php echo (int)($convoi['quantite_palettes_sortie'] ?? 0); ?></p>
+        <p><strong>Cartons produits :</strong> <?php echo (int)($convoi['quantite_cartons_entree'] ?? 0); ?></p>
+      <?php elseif ($convoi['type'] === 'revente'): ?>
+        <p><strong>Cartons vendus :</strong> <?php echo (int)($convoi['quantite_cartons_sortie'] ?? 0); ?></p>
+      <?php endif; ?>
+    <?php endif; ?>
+    
     <?php if ($convoi['notes']): ?>
       <p><strong>Notes :</strong><br><?php echo nl2br(htmlspecialchars($convoi['notes'])); ?></p>
     <?php endif; ?>
@@ -45,11 +54,36 @@ ob_start();
       Une fois clôturé, le convoi ne pourra plus être modifié et l'inventaire du coffre sera mis à jour automatiquement.
     </p>
     
-    <form method="post" action="/convois/<?php echo $convoi['id']; ?>/close" style="max-width:400px">
-      <div>
-        <label for="quantite_realisee">Quantité réalisée</label>
-        <input type="number" id="quantite_realisee" name="quantite_realisee" min="0" required>
-      </div>
+    <form method="post" action="/convois/<?php echo $convoi['id']; ?>/close" style="max-width:500px">
+      
+      <?php if ($convoi['type'] === 'recolte'): ?>
+        <!-- RÉCOLTE : ajoute des palettes -->
+        <div>
+          <label for="quantite_palettes">Nombre de palettes récoltées</label>
+          <input type="number" id="quantite_palettes" name="quantite_palettes" min="0" required>
+          <div class="muted" style="margin-top:6px">Ces palettes seront ajoutées au stock du coffre</div>
+        </div>
+        
+      <?php elseif ($convoi['type'] === 'traitement'): ?>
+        <!-- TRAITEMENT : retire palettes, ajoute cartons -->
+        <div>
+          <label for="quantite_palettes">Nombre de palettes à traiter (retrait du coffre)</label>
+          <input type="number" id="quantite_palettes" name="quantite_palettes" min="0" required>
+        </div>
+        
+        <div>
+          <label for="quantite_cartons">Nombre de cartons produits (ajout au coffre)</label>
+          <input type="number" id="quantite_cartons" name="quantite_cartons" min="0" required>
+          <div class="muted" style="margin-top:6px">Après traitement des palettes</div>
+        </div>
+        
+      <?php elseif ($convoi['type'] === 'revente'): ?>
+        <!-- REVENTE : retire des cartons -->
+        <div>
+          <label for="quantite_cartons">Nombre de cartons vendus (retrait du coffre)</label>
+          <input type="number" id="quantite_cartons" name="quantite_cartons" min="0" required>
+        </div>
+      <?php endif; ?>
       
       <div>
         <label for="note">Note de clôture (optionnel)</label>
@@ -74,6 +108,7 @@ ob_start();
         <tr>
           <th>Date</th>
           <th>Type</th>
+          <th>Unité</th>
           <th>Quantité</th>
           <th>Note</th>
         </tr>
@@ -89,7 +124,8 @@ ob_start();
                 <span style="color:#d9534f">➖ Retrait</span>
               <?php endif; ?>
             </td>
-            <td><?php echo (int)$m['quantite']; ?></td>
+            <td><?php echo ucfirst($m['unite'] ?? 'palette'); ?></td>
+            <td><strong><?php echo (int)$m['quantite']; ?></strong></td>
             <td><?php echo htmlspecialchars($m['note'] ?? '-'); ?></td>
           </tr>
         <?php endforeach; ?>

@@ -30,7 +30,9 @@ CREATE TABLE users (
 CREATE TABLE coffre (
   id INT AUTO_INCREMENT PRIMARY KEY,
   nom VARCHAR(100) NOT NULL,
-  quantite_actuelle INT NOT NULL DEFAULT 0 COMMENT 'Quantité de palettes/cartons en stock',
+  quantite_actuelle INT NOT NULL DEFAULT 0 COMMENT 'Quantité totale (ancienne version)',
+  quantite_palettes INT NOT NULL DEFAULT 0 COMMENT 'Stock de palettes',
+  quantite_cartons INT NOT NULL DEFAULT 0 COMMENT 'Stock de cartons',
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
@@ -41,6 +43,10 @@ CREATE TABLE convois (
   type ENUM('recolte','traitement','revente') NOT NULL,
   quantite_prevue INT NOT NULL DEFAULT 0,
   quantite_realisee INT DEFAULT NULL COMMENT 'Rempli à la clôture',
+  quantite_palettes_entree INT DEFAULT 0 COMMENT 'Palettes ajoutées (récolte)',
+  quantite_palettes_sortie INT DEFAULT 0 COMMENT 'Palettes retirées (traitement)',
+  quantite_cartons_entree INT DEFAULT 0 COMMENT 'Cartons ajoutés (traitement)',
+  quantite_cartons_sortie INT DEFAULT 0 COMMENT 'Cartons retirés (revente)',
   statut ENUM('ouvert','termine') NOT NULL DEFAULT 'ouvert',
   date_planned DATETIME NULL COMMENT 'Date prévue du convoi',
   date_terminated DATETIME NULL COMMENT 'Date de clôture effective',
@@ -61,6 +67,7 @@ CREATE TABLE mouvements (
   convoi_id INT NOT NULL,
   type ENUM('ajout','retrait') NOT NULL COMMENT 'ajout pour récolte, retrait pour traitement/revente',
   quantite INT NOT NULL,
+  unite ENUM('palette','carton') NOT NULL DEFAULT 'palette' COMMENT 'Type d''unité',
   date DATETIME DEFAULT CURRENT_TIMESTAMP,
   note TEXT NULL,
   FOREIGN KEY (convoi_id) REFERENCES convois(id) ON DELETE CASCADE,

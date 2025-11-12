@@ -6,9 +6,15 @@ ob_start();
 
 <div class="stats">
   <div class="stat-card">
-    <div class="stat-label">Coffre</div>
-    <div class="stat-value"><?php echo (int)$coffre['quantite_actuelle']; ?></div>
-    <div class="muted">palettes/cartons en stock</div>
+    <div class="stat-label">Palettes en stock</div>
+    <div class="stat-value"><?php echo (int)($coffre['quantite_palettes'] ?? 0); ?></div>
+    <div class="muted">dans le coffre BRINKS</div>
+  </div>
+  
+  <div class="stat-card">
+    <div class="stat-label">Cartons en stock</div>
+    <div class="stat-value"><?php echo (int)($coffre['quantite_cartons'] ?? 0); ?></div>
+    <div class="muted">dans le coffre BRINKS</div>
   </div>
   
   <div class="stat-card">

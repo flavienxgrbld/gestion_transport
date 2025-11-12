@@ -5,9 +5,9 @@
  */
 
 return [
-    'db_host' => getenv('DB_HOST') ?: '127.0.0.1',
-    'db_name' => getenv('DB_NAME') ?: 'gestion_convois',
-    'db_user' => getenv('DB_USER') ?: 'root',
-    'db_pass' => getenv('DB_PASS') ?: '',
-    'db_port' => getenv('DB_PORT') ?: '3306',
+    'db_host' => getenv('localhost') ?: '127.0.0.1',
+    'db_name' => getenv('gestion_convois') ?: 'gestion_convois',
+    'db_user' => getenv('gestion_convois') ?: 'root',
+    'db_pass' => getenv('@Dmin_password') ?: '',
+    'db_port' => getenv('3306') ?: '3306',
 ];

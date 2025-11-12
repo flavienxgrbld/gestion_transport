@@ -1,6 +1,10 @@
 -- Création des tables pour le système de formations
 USE gestion_convois;
 
+-- S'assurer que le charset est correct
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+
 -- Table des formations (catalogue)
 CREATE TABLE formations (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -111,10 +115,10 @@ Module 4 – Bonnes pratiques
 • En cas d''urgence, le 10-99 est prioritaire
 
 Module 5 – Erreurs à éviter
-🚫 Parler sans autorisation sur un canal prioritaire
-🚫 Couper la parole à un supérieur
-🚫 Utiliser un ton agressif
-🚫 Oublier d''utiliser les codes radio',
+- Parler sans autorisation sur un canal prioritaire
+- Couper la parole à un supérieur
+- Utiliser un ton agressif
+- Oublier d''utiliser les codes radio',
   '[
     {"question": "Que signifie le code 10-4 ?", "reponses": ["Négatif", "Affirmatif", "Indisponible radio"], "correct": 1},
     {"question": "Que signifie le code 10-6 ?", "reponses": ["Indisponible radio", "Début de convoi", "Rapport de situation"], "correct": 0},

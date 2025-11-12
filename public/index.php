@@ -231,28 +231,7 @@ if ($path === '/coffre') {
     exit;
 }
 
-// Route: gestion des utilisateurs (admin uniquement)
-if ($path === '/utilisateurs') {
-    $user = current_user();
-    if ($user['role'] !== 'admin') {
-        http_response_code(403);
-        echo "Accès refusé";
-        exit;
-    }
-    
-    $db = get_db();
-    $stmt = $db->prepare('SELECT u.*, o.nom as organisation_nom FROM users u JOIN organisations o ON u.organisation_id = o.id ORDER BY u.created_at DESC');
-    $stmt->execute();
-    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    $stmt = $db->query('SELECT * FROM organisations ORDER BY nom');
-    $organisations = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    require __DIR__ . '/../templates/utilisateurs.php';
-    exit;
-}
-
-// Route: créer un utilisateur (admin uniquement)
+// Route: créer un utilisateur (admin uniquement) - DOIT être avant /utilisateurs
 if ($path === '/utilisateurs/create' && $method === 'POST') {
     $user = current_user();
     if ($user['role'] !== 'admin') {
@@ -279,7 +258,7 @@ if ($path === '/utilisateurs/create' && $method === 'POST') {
     exit;
 }
 
-// Route: supprimer un utilisateur (admin uniquement)
+// Route: supprimer un utilisateur (admin uniquement) - DOIT être avant /utilisateurs
 if (preg_match('#^/utilisateurs/(\d+)/delete$#', $path, $matches) && $method === 'POST') {
     $user = current_user();
     if ($user['role'] !== 'admin') {
@@ -301,6 +280,27 @@ if (preg_match('#^/utilisateurs/(\d+)/delete$#', $path, $matches) && $method ===
     $stmt->execute([$user_id]);
     
     header('Location: /utilisateurs');
+    exit;
+}
+
+// Route: gestion des utilisateurs (admin uniquement) - Liste
+if ($path === '/utilisateurs') {
+    $user = current_user();
+    if ($user['role'] !== 'admin') {
+        http_response_code(403);
+        echo "Accès refusé";
+        exit;
+    }
+    
+    $db = get_db();
+    $stmt = $db->prepare('SELECT u.*, o.nom as organisation_nom FROM users u JOIN organisations o ON u.organisation_id = o.id ORDER BY u.created_at DESC');
+    $stmt->execute();
+    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $stmt = $db->query('SELECT * FROM organisations ORDER BY nom');
+    $organisations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    require __DIR__ . '/../templates/utilisateurs.php';
     exit;
 }
 

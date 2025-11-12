@@ -48,6 +48,16 @@ ob_start();
     <div class="muted"><a href="/utilisateurs" style="color:#6c757d">Gérer →</a></div>
   </div>
   <?php endif; ?>
+  
+  <?php if (isset($total_sanctions_actives)): ?>
+  <div class="stat-card" style="<?php echo $total_sanctions_actives > 0 ? 'border-left-color:#dc3545' : ''; ?>">
+    <div class="stat-label">Sanctions actives</div>
+    <div class="stat-value" style="<?php echo $total_sanctions_actives > 0 ? 'color:#dc3545' : ''; ?>">
+      <?php echo (int)$total_sanctions_actives; ?>
+    </div>
+    <div class="muted"><a href="/sanctions" style="color:#6c757d">Voir →</a></div>
+  </div>
+  <?php endif; ?>
 </div>
 
 <h3>Derniers convois</h3>

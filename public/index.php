@@ -58,10 +58,22 @@ if ($path === '/dashboard') {
     // Compte les utilisateurs (pour les admins)
     $user = current_user();
     $total_users = 0;
+    $total_sanctions_actives = 0;
+    
     if ($user['role'] === 'admin') {
         $stmt = $db->query('SELECT COUNT(*) as total FROM users');
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         $total_users = $result['total'];
+        
+        $stmt = $db->query("SELECT COUNT(*) as total FROM sanctions WHERE statut = 'active'");
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $total_sanctions_actives = $result['total'];
+    } else {
+        // Les users voient leurs propres sanctions actives
+        $stmt = $db->prepare("SELECT COUNT(*) as total FROM sanctions WHERE user_id = ? AND statut = 'active'");
+        $stmt->execute([$user['id']]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $total_sanctions_actives = $result['total'];
     }
     
     require __DIR__ . '/../templates/dashboard.php';
@@ -313,6 +325,139 @@ if ($path === '/utilisateurs') {
     $organisations = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     require __DIR__ . '/../templates/utilisateurs.php';
+    exit;
+}
+
+// Route: créer une sanction (admin uniquement)
+if ($path === '/sanctions/create' && $method === 'POST') {
+    $user = current_user();
+    if ($user['role'] !== 'admin') {
+        http_response_code(403);
+        echo "Accès refusé";
+        exit;
+    }
+    
+    try {
+        $db = get_db();
+        $convoi_id = $_POST['convoi_id'] ?? null;
+        $user_id = $_POST['user_id'] ?? null;
+        $type = $_POST['type'] ?? 'avertissement';
+        $motif = $_POST['motif'] ?? '';
+        $montant = $_POST['montant'] ?? null;
+        $date_sanction = $_POST['date_sanction'] ?? date('Y-m-d');
+        $date_fin = $_POST['date_fin'] ?? null;
+        
+        if ($convoi_id && $user_id && $motif) {
+            $stmt = $db->prepare('INSERT INTO sanctions (convoi_id, user_id, type, motif, montant, date_sanction, date_fin, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+            $stmt->execute([$convoi_id, $user_id, $type, $motif, $montant, $date_sanction, $date_fin, $user['id']]);
+            $_SESSION['success'] = 'Sanction créée avec succès';
+        } else {
+            $_SESSION['error'] = 'Tous les champs obligatoires doivent être remplis';
+        }
+    } catch (Exception $e) {
+        $_SESSION['error'] = 'Erreur: ' . $e->getMessage();
+    }
+    
+    header('Location: /sanctions');
+    exit;
+}
+
+// Route: modifier le statut d'une sanction (admin uniquement)
+if (preg_match('#^/sanctions/(\d+)/status$#', $path, $matches) && $method === 'POST') {
+    $user = current_user();
+    if ($user['role'] !== 'admin') {
+        http_response_code(403);
+        echo "Accès refusé";
+        exit;
+    }
+    
+    $sanction_id = $matches[1];
+    $statut = $_POST['statut'] ?? 'active';
+    
+    $db = get_db();
+    $stmt = $db->prepare('UPDATE sanctions SET statut = ? WHERE id = ?');
+    $stmt->execute([$statut, $sanction_id]);
+    
+    $_SESSION['success'] = 'Statut mis à jour';
+    header('Location: /sanctions');
+    exit;
+}
+
+// Route: supprimer une sanction (admin uniquement)
+if (preg_match('#^/sanctions/(\d+)/delete$#', $path, $matches) && $method === 'POST') {
+    $user = current_user();
+    if ($user['role'] !== 'admin') {
+        http_response_code(403);
+        echo "Accès refusé";
+        exit;
+    }
+    
+    $sanction_id = $matches[1];
+    
+    $db = get_db();
+    $stmt = $db->prepare('DELETE FROM sanctions WHERE id = ?');
+    $stmt->execute([$sanction_id]);
+    
+    $_SESSION['success'] = 'Sanction supprimée';
+    header('Location: /sanctions');
+    exit;
+}
+
+// Route: gestion des sanctions
+if ($path === '/sanctions') {
+    $user = current_user();
+    $db = get_db();
+    
+    // Les admins voient tout, les users voient uniquement leurs sanctions
+    if ($user['role'] === 'admin') {
+        $stmt = $db->prepare('
+            SELECT s.*, 
+                   u.nom as user_nom, u.prenom as user_prenom, 
+                   o.nom as organisation_nom,
+                   c.id as convoi_id, c.type as convoi_type,
+                   creator.nom as creator_nom
+            FROM sanctions s
+            JOIN users u ON s.user_id = u.id
+            JOIN organisations o ON u.organisation_id = o.id
+            JOIN convois c ON s.convoi_id = c.id
+            JOIN users creator ON s.created_by = creator.id
+            ORDER BY s.created_at DESC
+        ');
+        $stmt->execute();
+    } else {
+        $stmt = $db->prepare('
+            SELECT s.*, 
+                   u.nom as user_nom, u.prenom as user_prenom, 
+                   o.nom as organisation_nom,
+                   c.id as convoi_id, c.type as convoi_type,
+                   creator.nom as creator_nom
+            FROM sanctions s
+            JOIN users u ON s.user_id = u.id
+            JOIN organisations o ON u.organisation_id = o.id
+            JOIN convois c ON s.convoi_id = c.id
+            JOIN users creator ON s.created_by = creator.id
+            WHERE s.user_id = ?
+            ORDER BY s.created_at DESC
+        ');
+        $stmt->execute([$user['id']]);
+    }
+    
+    $sanctions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Pour le formulaire de création (admin uniquement)
+    if ($user['role'] === 'admin') {
+        $stmt = $db->query('SELECT id, type, created_at FROM convois ORDER BY created_at DESC LIMIT 50');
+        $convois = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $stmt = $db->prepare('SELECT u.id, u.nom, u.prenom, o.nom as organisation_nom FROM users u JOIN organisations o ON u.organisation_id = o.id ORDER BY u.nom, u.prenom');
+        $stmt->execute();
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        $convois = [];
+        $users = [];
+    }
+    
+    require __DIR__ . '/../templates/sanctions.php';
     exit;
 }
 

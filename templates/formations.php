@@ -95,7 +95,10 @@ ob_start();
                 <td>
                   <strong><?php echo htmlspecialchars($f['titre']); ?></strong>
                   <div class="muted" style="font-size:13px">
-                    <?php echo htmlspecialchars(mb_substr($f['description'], 0, 80)) . '...'; ?>
+                    <?php 
+                      $desc = $f['description'] ?? '';
+                      echo htmlspecialchars(strlen($desc) > 80 ? substr($desc, 0, 80) . '...' : $desc); 
+                    ?>
                   </div>
                 </td>
                 <td><?php echo $f['duree_heures']; ?>h</td>

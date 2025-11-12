@@ -40,6 +40,14 @@ ob_start();
       ?>
     </div>
   </div>
+  
+  <?php if (current_user()['role'] === 'admin' && isset($total_users)): ?>
+  <div class="stat-card">
+    <div class="stat-label">Utilisateurs</div>
+    <div class="stat-value"><?php echo (int)$total_users; ?></div>
+    <div class="muted"><a href="/utilisateurs" style="color:#6c757d">Gérer →</a></div>
+  </div>
+  <?php endif; ?>
 </div>
 
 <h3>Derniers convois</h3>

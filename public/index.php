@@ -50,6 +50,15 @@ if ($path === '/dashboard') {
     $stmt->execute();
     $convois = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    // Compte les utilisateurs (pour les admins)
+    $user = current_user();
+    $total_users = 0;
+    if ($user['role'] === 'admin') {
+        $stmt = $db->query('SELECT COUNT(*) as total FROM users');
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $total_users = $result['total'];
+    }
+    
     require __DIR__ . '/../templates/dashboard.php';
     exit;
 }
@@ -219,6 +228,79 @@ if ($path === '/coffre') {
     $mouvements = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     require __DIR__ . '/../templates/coffre.php';
+    exit;
+}
+
+// Route: gestion des utilisateurs (admin uniquement)
+if ($path === '/utilisateurs') {
+    $user = current_user();
+    if ($user['role'] !== 'admin') {
+        http_response_code(403);
+        echo "Accès refusé";
+        exit;
+    }
+    
+    $db = get_db();
+    $stmt = $db->prepare('SELECT u.*, o.nom as organisation_nom FROM users u JOIN organisations o ON u.organisation_id = o.id ORDER BY u.created_at DESC');
+    $stmt->execute();
+    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $stmt = $db->query('SELECT * FROM organisations ORDER BY nom');
+    $organisations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    require __DIR__ . '/../templates/utilisateurs.php';
+    exit;
+}
+
+// Route: créer un utilisateur (admin uniquement)
+if ($path === '/utilisateurs/create' && $method === 'POST') {
+    $user = current_user();
+    if ($user['role'] !== 'admin') {
+        http_response_code(403);
+        echo "Accès refusé";
+        exit;
+    }
+    
+    $db = get_db();
+    $nom = $_POST['nom'] ?? '';
+    $prenom = $_POST['prenom'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $password = $_POST['password'] ?? '';
+    $role = $_POST['role'] ?? 'user';
+    $organisation_id = $_POST['organisation_id'] ?? null;
+    
+    if ($nom && $prenom && $email && $password && $organisation_id) {
+        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $db->prepare('INSERT INTO users (nom, prenom, email, password, role, organisation_id) VALUES (?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$nom, $prenom, $email, $password_hash, $role, $organisation_id]);
+    }
+    
+    header('Location: /utilisateurs');
+    exit;
+}
+
+// Route: supprimer un utilisateur (admin uniquement)
+if (preg_match('#^/utilisateurs/(\d+)/delete$#', $path, $matches) && $method === 'POST') {
+    $user = current_user();
+    if ($user['role'] !== 'admin') {
+        http_response_code(403);
+        echo "Accès refusé";
+        exit;
+    }
+    
+    $user_id = $matches[1];
+    
+    // Empêcher de supprimer son propre compte
+    if ($user_id == $user['id']) {
+        header('Location: /utilisateurs?error=self_delete');
+        exit;
+    }
+    
+    $db = get_db();
+    $stmt = $db->prepare('DELETE FROM users WHERE id = ?');
+    $stmt->execute([$user_id]);
+    
+    header('Location: /utilisateurs');
     exit;
 }
 

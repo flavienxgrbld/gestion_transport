@@ -181,6 +181,9 @@
           <a href="/dashboard">Dashboard</a>
           <a href="/convois">Convois</a>
           <a href="/coffre">Coffre</a>
+          <?php if (current_user()['role'] === 'admin'): ?>
+            <a href="/utilisateurs">Utilisateurs</a>
+          <?php endif; ?>
           <a href="/logout">Déconnexion</a>
         <?php else: ?>
           <a href="/login">Se connecter</a>

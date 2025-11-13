@@ -39,6 +39,8 @@ ob_start();
             <td>
               <?php if ($u['role'] === 'admin'): ?>
                 <span class="badge badge-danger">Admin</span>
+              <?php elseif ($u['role'] === 'superviseur'): ?>
+                <span class="badge badge-warning">Superviseur</span>
               <?php else: ?>
                 <span class="badge badge-secondary">Utilisateur</span>
               <?php endif; ?>
@@ -98,6 +100,7 @@ ob_start();
         <label for="role">Rôle</label>
         <select id="role" name="role" required>
           <option value="user">Utilisateur</option>
+          <option value="superviseur">Superviseur</option>
           <option value="admin">Administrateur</option>
         </select>
       </div>
@@ -131,6 +134,10 @@ ob_start();
 .badge-danger {
   background: #dc3545;
   color: white;
+}
+.badge-warning {
+  background: #ffc107;
+  color: #333;
 }
 .badge-secondary {
   background: #6c757d;

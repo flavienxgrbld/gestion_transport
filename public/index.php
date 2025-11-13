@@ -1090,10 +1090,10 @@ if ($path === '/portail/etat') {
     exit;
 }
 
-// Route: portail administration - accès réservé aux admins
+// Route: portail administration - accès réservé aux superviseurs
 if ($path === '/portail/admin') {
     $user = current_user();
-    if ($user['role'] !== 'admin') {
+    if ($user['role'] !== 'superviseur') {
         http_response_code(403);
         echo "Accès refusé";
         exit;

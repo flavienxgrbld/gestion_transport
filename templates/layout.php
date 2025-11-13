@@ -33,9 +33,58 @@
       text-decoration: none;
       margin-left: 20px;
       font-size: 14px;
+      position: relative;
+      display: inline-block;
     }
     .nav-links a:hover {
       text-decoration: underline;
+    }
+    .dropdown {
+      position: relative;
+      display: inline-block;
+      margin-left: 20px;
+    }
+    .dropdown-toggle {
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    .dropdown-toggle:hover {
+      text-decoration: underline;
+    }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: #fff;
+      min-width: 200px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      border-radius: 4px;
+      margin-top: 8px;
+      z-index: 1000;
+    }
+    .dropdown-menu a {
+      color: #333;
+      display: block;
+      padding: 10px 16px;
+      text-decoration: none;
+      margin: 0;
+      border-bottom: 1px solid #eee;
+    }
+    .dropdown-menu a:last-child {
+      border-bottom: none;
+    }
+    .dropdown-menu a:hover {
+      background: #f5f7fa;
+      text-decoration: none;
+    }
+    .dropdown:hover .dropdown-menu {
+      display: block;
     }
     .container {
       max-width: 1200px;
@@ -202,12 +251,21 @@
           <a href="/dashboard">Dashboard</a>
           <a href="/convois">Convois</a>
           <a href="/coffre">Coffre</a>
-          <a href="/formations">Formations</a>
+          
+          <div class="dropdown">
+            <span class="dropdown-toggle">Formations ▾</span>
+            <div class="dropdown-menu">
+              <a href="/formations">📚 Catalogue</a>
+              <?php if (current_user()['role'] === 'admin'): ?>
+                <a href="/admin/formations">➕ Créer Formation</a>
+                <a href="/admin/sessions">📅 Gérer Sessions</a>
+              <?php endif; ?>
+            </div>
+          </div>
+          
           <a href="/sanctions">Sanctions</a>
           <?php if (current_user()['role'] === 'admin'): ?>
             <a href="/utilisateurs">Utilisateurs</a>
-            <a href="/admin/formations">Créer Formation</a>
-            <a href="/admin/sessions">Sessions</a>
           <?php endif; ?>
           <a href="/logout">Déconnexion</a>
         <?php else: ?>

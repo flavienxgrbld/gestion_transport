@@ -76,6 +76,17 @@ if ($path === '/logout') {
 
 // Toutes les routes suivantes nécessitent authentification
 if (!is_logged_in()) {
+    // Si l'utilisateur essaie d'accéder à un portail, rediriger vers le login adapté
+    if (strpos($path, '/portail/entreprise') === 0 || strpos($path, '/login/entreprise') === 0) {
+        header('Location: /login/entreprise');
+        exit;
+    }
+    if (strpos($path, '/portail/etat') === 0 || strpos($path, '/login/etat') === 0) {
+        header('Location: /login/etat');
+        exit;
+    }
+
+    // Par défaut, rediriger vers le login général BRINKS
     header('Location: /login');
     exit;
 }

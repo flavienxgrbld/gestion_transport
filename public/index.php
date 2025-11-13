@@ -1133,10 +1133,39 @@ if ($path === '/portail/admin') {
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Pour le formulaire de création on fournit la liste des organisations
-    $stmt = $db->query('SELECT id, nom FROM organisations ORDER BY nom');
+    $stmt = $db->query('SELECT id, nom, type, created_at FROM organisations ORDER BY nom');
     $organisations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     require __DIR__ . '/../templates/admin/portail.php';
+    exit;
+}
+
+// Route: créer une organisation (superviseur uniquement)
+if ($path === '/admin/organisations/create' && $method === 'POST') {
+    $user = current_user();
+    if ($user['role'] !== 'superviseur') {
+        http_response_code(403);
+        echo "Accès refusé";
+        exit;
+    }
+
+    try {
+        $db = get_db();
+        $nom = $_POST['nom'] ?? '';
+        $type = $_POST['type'] ?? '';
+
+        if ($nom && $type) {
+            $stmt = $db->prepare('INSERT INTO organisations (nom, type) VALUES (?, ?)');
+            $stmt->execute([$nom, $type]);
+            $_SESSION['success'] = 'Organisation créée avec succès';
+        } else {
+            $_SESSION['error'] = 'Tous les champs sont requis';
+        }
+    } catch (Exception $e) {
+        $_SESSION['error'] = 'Erreur: ' . $e->getMessage();
+    }
+
+    header('Location: /portail/admin');
     exit;
 }
 

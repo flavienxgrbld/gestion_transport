@@ -21,7 +21,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 // Route: page d'accueil - sélection des portails
 if ($path === '/') {
-    require __DIR__ . '/../templates/portails.php';
+    require __DIR__ . '/../templates/brinks/portails.php';
     exit;
 }
 
@@ -31,7 +31,7 @@ if ($path === '/login') {
         header('Location: /dashboard');
         exit;
     }
-    require __DIR__ . '/../templates/login.php';
+    require __DIR__ . '/../templates/brinks/login.php';
     exit;
 }
 
@@ -41,7 +41,7 @@ if ($path === '/login/entreprise') {
         header('Location: /portail/entreprise');
         exit;
     }
-    require __DIR__ . '/../templates/login_entreprise.php';
+    require __DIR__ . '/../templates/entreprise/login.php';
     exit;
 }
 
@@ -57,7 +57,7 @@ if ($path === '/login/etat') {
         }
         exit;
     }
-    require __DIR__ . '/../templates/login_etat.php';
+    require __DIR__ . '/../templates/etat/login.php';
     exit;
 }
 
@@ -1024,7 +1024,7 @@ if ($path === '/portail/entreprise') {
     $stmt->execute([$user['organisation_id']]);
     $total_certifies = $stmt->fetch(PDO::FETCH_ASSOC)['total_certifies'];
 
-    require __DIR__ . '/../templates/portail_entreprise.php';
+    require __DIR__ . '/../templates/entreprise/portail.php';
     exit;
 }
 
@@ -1053,7 +1053,7 @@ if ($path === '/portail/etat') {
     $stmt = $db->query("SELECT COUNT(DISTINCT i.user_id) as certifies FROM inscriptions_formation i WHERE i.resultat = 'reussi'");
     $certifies = $stmt->fetch(PDO::FETCH_ASSOC)['certifies'];
 
-    require __DIR__ . '/../templates/portail_etat.php';
+    require __DIR__ . '/../templates/etat/portail.php';
     exit;
 }
 

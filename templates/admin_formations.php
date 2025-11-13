@@ -186,11 +186,11 @@ function addQuestion() {
     const container = document.getElementById('questionsContainer');
     
     const questionDiv = document.createElement('div');
-    questionDiv.className = 'card mb-3';
-    questionDiv.id = 'question-' + questionCounter;
+    questionDiv.className = 'card mb-3 question-card';
+    questionDiv.dataset.questionId = questionCounter;
     questionDiv.innerHTML = `
         <div class="card-header d-flex justify-content-between align-items-center" style="background: #f8f9fa; padding: 10px 15px;">
-            <strong>Question ${questionCounter}</strong>
+            <strong class="question-number">Question ${questionCounter}</strong>
             <button type="button" class="btn btn-sm btn-danger" onclick="removeQuestion(${questionCounter})">
                 Supprimer
             </button>
@@ -238,20 +238,34 @@ function addQuestion() {
     `;
     
     container.appendChild(questionDiv);
+    renumberQuestions();
     updateJSON();
 }
 
 function removeQuestion(id) {
-    const element = document.getElementById('question-' + id);
-    if (element) {
-        element.remove();
-        updateJSON();
-    }
+    const cards = document.querySelectorAll('.question-card');
+    cards.forEach(card => {
+        if (parseInt(card.dataset.questionId) === id) {
+            card.remove();
+        }
+    });
+    renumberQuestions();
+    updateJSON();
+}
+
+function renumberQuestions() {
+    const cards = document.querySelectorAll('.question-card');
+    cards.forEach((card, index) => {
+        const numberSpan = card.querySelector('.question-number');
+        if (numberSpan) {
+            numberSpan.textContent = 'Question ' + (index + 1);
+        }
+    });
 }
 
 function updateJSON() {
     const questions = [];
-    const questionDivs = document.querySelectorAll('#questionsContainer .card');
+    const questionDivs = document.querySelectorAll('#questionsContainer .question-card');
     
     questionDivs.forEach((div, index) => {
         const questionText = div.querySelector('.question-text').value;

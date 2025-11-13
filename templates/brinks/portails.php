@@ -29,7 +29,7 @@ ob_start();
     <div class="card" style="padding:18px;min-width:220px;flex:1;background:#fff5f7;">
       <h3>🔐 Portail Administration</h3>
       <p>Gestion des utilisateurs et organisations. Accès réservé aux administrateurs.</p>
-      <a class="btn" href="/portail/admin" style="background:#7b1e2d;">Aller au portail Admin</a>
+      <a class="btn" href="/login/admin" style="background:#7b1e2d;">Aller au portail Admin</a>
     </div>
   </div>
 

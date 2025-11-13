@@ -61,6 +61,21 @@ if ($path === '/login/etat') {
     exit;
 }
 
+// Route: page de connexion pour portail admin
+if ($path === '/login/admin') {
+    if (is_logged_in()) {
+        $user = current_user();
+        if ($user['role'] === 'superviseur') {
+            header('Location: /portail/admin');
+        } else {
+            header('Location: /');
+        }
+        exit;
+    }
+    require __DIR__ . '/../templates/admin/login.php';
+    exit;
+}
+
 // Route: portail Brinks (redirection vers la page de connexion)
 if ($path === '/portail/brinks') {
     header('Location: /login');
@@ -77,6 +92,10 @@ if ($path === '/logout') {
 // Toutes les routes suivantes nécessitent authentification
 if (!is_logged_in()) {
     // Si l'utilisateur essaie d'accéder à un portail, rediriger vers le login adapté
+    if (strpos($path, '/portail/admin') === 0 || strpos($path, '/login/admin') === 0) {
+        header('Location: /login/admin');
+        exit;
+    }
     if (strpos($path, '/portail/entreprise') === 0 || strpos($path, '/login/entreprise') === 0) {
         header('Location: /login/entreprise');
         exit;

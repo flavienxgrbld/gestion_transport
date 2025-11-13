@@ -9,18 +9,11 @@ ob_start();
     $email = $_POST['email'] ?? '';
     $password = $_POST['password'] ?? '';
 
-    if (login($email, $password)) {
-      $user = current_user();
-      if (in_array($user['role'], ['etat', 'admin'])) {
-        header('Location: /portail/etat');
-        exit;
-      } else {
-        // Connexion possible mais pas autorisé pour le portail état
-        logout();
-        echo '<div class="error">Votre compte n\'est pas autorisé à accéder au portail État</div>';
-      }
+    if (login($email, $password, ['etat', 'admin'])) {
+      header('Location: /portail/etat');
+      exit;
     } else {
-      echo '<div class="error">Email ou mot de passe incorrect</div>';
+      echo '<div class="error">Email ou mot de passe incorrect ou accès non autorisé</div>';
     }
   ?>
 <?php endif; ?>

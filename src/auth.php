@@ -29,7 +29,7 @@ function current_user() {
     return $user;
 }
 
-function login($email, $password) {
+function login($email, $password, $allowed_roles = null) {
     $db = get_db();
     $stmt = $db->prepare('SELECT * FROM users WHERE email = ?');
     $stmt->execute([$email]);
@@ -39,8 +39,8 @@ function login($email, $password) {
         return false;
     }
     
-    // Vérifier que le rôle est 'superviseur'
-    if ($user['role'] !== 'superviseur') {
+    // Vérifier le rôle si des rôles autorisés sont spécifiés
+    if ($allowed_roles !== null && !in_array($user['role'], $allowed_roles)) {
         return false;
     }
     

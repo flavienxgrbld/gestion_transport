@@ -9,7 +9,7 @@ ob_start();
     $email = $_POST['email'] ?? '';
     $password = $_POST['password'] ?? '';
     
-    if (login($email, $password)) {
+    if (login($email, $password, ['admin', 'user'])) {
       header('Location: /dashboard');
       exit;
     } else {

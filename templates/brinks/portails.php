@@ -25,6 +25,14 @@ ob_start();
       <p>Accès général BRINKS — vous serez redirigé vers la page de connexion.</p>
       <a class="btn btn-secondary" href="/portail/brinks">Aller au portail BRINKS</a>
     </div>
+
+    <?php if (is_logged_in() && current_user()['role'] === 'admin'): ?>
+    <div class="card" style="padding:18px;min-width:220px;flex:1;background:#fff5f7;">
+      <h3>🔐 Portail Administration</h3>
+      <p>Accès réservé aux administrateurs — gestion des utilisateurs et organisations.</p>
+      <a class="btn" href="/portail/admin" style="background:#7b1e2d;">Aller au portail Admin</a>
+    </div>
+    <?php endif; ?>
   </div>
 
   <p style="margin-top:18px;color:#666;font-size:0.9rem;">Remarque : certains portails nécessitent une connexion et des droits spécifiques.</p>

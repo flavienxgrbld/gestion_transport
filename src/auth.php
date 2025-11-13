@@ -39,6 +39,11 @@ function login($email, $password) {
         return false;
     }
     
+    // Vérifier que le rôle est 'superviseur'
+    if ($user['role'] !== 'superviseur') {
+        return false;
+    }
+    
     if (password_verify($password, $user['password'])) {
         $_SESSION['user_id'] = $user['id'];
         unset($_SESSION['user']); // Force refresh

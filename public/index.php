@@ -194,6 +194,39 @@ if ($path === '/dashboard') {
     exit;
 }
 
+// Route: dashboard entreprise (organisation-specific)
+if ($path === '/entreprise/dashboard') {
+    $user = current_user();
+    $db = get_db();
+
+    // Vérifier que l'utilisateur appartient bien à une organisation
+    if (!$user || empty($user['organisation_id'])) {
+        header('Location: /');
+        exit;
+    }
+
+    // Statistiques spécifiques à l'organisation
+    $stmt = $db->prepare('SELECT COUNT(*) as total_convois FROM convois WHERE organisation_id = ?');
+    $stmt->execute([$user['organisation_id']]);
+    $total_convois = $stmt->fetch(PDO::FETCH_ASSOC)['total_convois'];
+
+    $stmt = $db->prepare('SELECT COUNT(*) as total_operateurs FROM users WHERE organisation_id = ?');
+    $stmt->execute([$user['organisation_id']]);
+    $total_operateurs = $stmt->fetch(PDO::FETCH_ASSOC)['total_operateurs'];
+
+    $stmt = $db->prepare('SELECT COUNT(*) as open_incidents FROM sanctions s JOIN users u ON s.user_id = u.id WHERE u.organisation_id = ? AND s.statut = "active"');
+    $stmt->execute([$user['organisation_id']]);
+    $open_incidents = $stmt->fetch(PDO::FETCH_ASSOC)['open_incidents'];
+
+    // Récupérer les 10 derniers convois de l'organisation
+    $stmt = $db->prepare('SELECT c.*, o.nom as organisation_nom FROM convois c JOIN organisations o ON c.organisation_id = o.id WHERE c.organisation_id = ? ORDER BY c.created_at DESC LIMIT 10');
+    $stmt->execute([$user['organisation_id']]);
+    $convois_org = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    require __DIR__ . '/../templates/entreprise/dashboard.php';
+    exit;
+}
+
 // Route: liste des convois
 if ($path === '/convois') {
     $db = get_db();

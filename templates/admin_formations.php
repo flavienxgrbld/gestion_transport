@@ -151,34 +151,19 @@ ob_start();
 
                         <!-- Colonne droite -->
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Questions QCM (JSON) <span class="text-danger">*</span></label>
-                                <textarea class="form-control font-monospace" name="questions_qcm" rows="20" required 
-                                          id="questionsQcm" style="font-size: 0.85rem;"></textarea>
-                                <small class="text-muted">Format JSON attendu (voir exemple ci-dessous)</small>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <label class="form-label mb-0">Questions QCM <span class="text-danger">*</span></label>
+                                <button type="button" class="btn btn-sm btn-success" onclick="addQuestion()">
+                                    + Ajouter une question
+                                </button>
                             </div>
-
-                            <div class="alert alert-info">
-                                <strong>Format JSON requis:</strong>
-                                <pre class="mb-0 mt-2" style="font-size: 0.75rem;">[
-  {
-    "question": "Question 1 ?",
-    "reponses": ["Réponse A", "Réponse B", "Réponse C"],
-    "correct": 0
-  },
-  {
-    "question": "Question 2 ?",
-    "reponses": ["Réponse A", "Réponse B", "Réponse C"],
-    "correct": 1
-  }
-]</pre>
-                                <small class="d-block mt-2"><strong>Note:</strong> "correct" est l'index (0, 1, 2...) de la bonne réponse</small>
+                            
+                            <div id="questionsContainer" style="max-height: 500px; overflow-y: auto;">
+                                <!-- Les questions seront ajoutées ici dynamiquement -->
                             </div>
-
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="validateJSON()">
-                                <i class="bi bi-check-circle"></i> Valider le JSON
-                            </button>
-                            <span id="jsonValidation" class="ms-2"></span>
+                            
+                            <input type="hidden" name="questions_qcm" id="questionsQcmHidden" required>
+                            <small class="text-muted">Minimum 5 questions recommandées</small>
                         </div>
                     </div>
                 </div>
@@ -194,42 +179,134 @@ ob_start();
 </div>
 
 <script>
-function validateJSON() {
-    const textarea = document.getElementById('questionsQcm');
-    const validation = document.getElementById('jsonValidation');
+let questionCounter = 0;
+
+function addQuestion() {
+    questionCounter++;
+    const container = document.getElementById('questionsContainer');
     
-    try {
-        const json = JSON.parse(textarea.value);
-        
-        if (!Array.isArray(json)) {
-            throw new Error('Le JSON doit être un tableau');
-        }
-        
-        json.forEach((q, index) => {
-            if (!q.question || !Array.isArray(q.reponses) || typeof q.correct !== 'number') {
-                throw new Error(`Question ${index + 1}: format invalide`);
-            }
-            if (q.correct < 0 || q.correct >= q.reponses.length) {
-                throw new Error(`Question ${index + 1}: index "correct" hors limites`);
-            }
-        });
-        
-        validation.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill"></i> JSON valide (' + json.length + ' questions)</span>';
-    } catch (e) {
-        validation.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle-fill"></i> Erreur: ' + e.message + '</span>';
+    const questionDiv = document.createElement('div');
+    questionDiv.className = 'card mb-3';
+    questionDiv.id = 'question-' + questionCounter;
+    questionDiv.innerHTML = `
+        <div class="card-header d-flex justify-content-between align-items-center" style="background: #f8f9fa; padding: 10px 15px;">
+            <strong>Question ${questionCounter}</strong>
+            <button type="button" class="btn btn-sm btn-danger" onclick="removeQuestion(${questionCounter})">
+                Supprimer
+            </button>
+        </div>
+        <div class="card-body" style="padding: 15px;">
+            <div class="mb-3">
+                <label class="form-label" style="font-size: 0.9rem;">Énoncé de la question</label>
+                <input type="text" class="form-control question-text" placeholder="Ex: Quelle est la fréquence du canal 42 ?" required>
+            </div>
+            
+            <div class="mb-2">
+                <label class="form-label" style="font-size: 0.9rem;">Réponses possibles</label>
+            </div>
+            
+            <div class="mb-2">
+                <div class="form-check">
+                    <input class="form-check-input answer-radio" type="radio" name="correct-${questionCounter}" value="0" required>
+                    <input type="text" class="form-control form-control-sm d-inline-block answer-text" style="width: calc(100% - 30px); margin-left: 5px;" placeholder="Réponse A" required>
+                </div>
+            </div>
+            
+            <div class="mb-2">
+                <div class="form-check">
+                    <input class="form-check-input answer-radio" type="radio" name="correct-${questionCounter}" value="1">
+                    <input type="text" class="form-control form-control-sm d-inline-block answer-text" style="width: calc(100% - 30px); margin-left: 5px;" placeholder="Réponse B" required>
+                </div>
+            </div>
+            
+            <div class="mb-2">
+                <div class="form-check">
+                    <input class="form-check-input answer-radio" type="radio" name="correct-${questionCounter}" value="2">
+                    <input type="text" class="form-control form-control-sm d-inline-block answer-text" style="width: calc(100% - 30px); margin-left: 5px;" placeholder="Réponse C" required>
+                </div>
+            </div>
+            
+            <div class="mb-2">
+                <div class="form-check">
+                    <input class="form-check-input answer-radio" type="radio" name="correct-${questionCounter}" value="3">
+                    <input type="text" class="form-control form-control-sm d-inline-block answer-text" style="width: calc(100% - 30px); margin-left: 5px;" placeholder="Réponse D (optionnelle)">
+                </div>
+            </div>
+            
+            <small class="text-muted">Cochez la bonne réponse</small>
+        </div>
+    `;
+    
+    container.appendChild(questionDiv);
+    updateJSON();
+}
+
+function removeQuestion(id) {
+    const element = document.getElementById('question-' + id);
+    if (element) {
+        element.remove();
+        updateJSON();
     }
 }
 
-// Pré-remplir avec un exemple
-document.addEventListener('DOMContentLoaded', function() {
-    const example = [
-        {
-            "question": "Exemple de question ?",
-            "reponses": ["Réponse A", "Réponse B", "Réponse C"],
-            "correct": 0
+function updateJSON() {
+    const questions = [];
+    const questionDivs = document.querySelectorAll('#questionsContainer .card');
+    
+    questionDivs.forEach((div, index) => {
+        const questionText = div.querySelector('.question-text').value;
+        const answerInputs = div.querySelectorAll('.answer-text');
+        const correctRadio = div.querySelector('.answer-radio:checked');
+        
+        const reponses = [];
+        answerInputs.forEach(input => {
+            if (input.value.trim()) {
+                reponses.push(input.value.trim());
+            }
+        });
+        
+        if (questionText && reponses.length >= 2 && correctRadio) {
+            questions.push({
+                question: questionText,
+                reponses: reponses,
+                correct: parseInt(correctRadio.value)
+            });
         }
-    ];
-    document.getElementById('questionsQcm').value = JSON.stringify(example, null, 2);
+    });
+    
+    document.getElementById('questionsQcmHidden').value = JSON.stringify(questions);
+}
+
+// Mettre à jour le JSON à chaque modification
+document.addEventListener('DOMContentLoaded', function() {
+    // Ajouter 3 questions par défaut
+    addQuestion();
+    addQuestion();
+    addQuestion();
+    
+    // Écouter les changements sur le conteneur
+    const container = document.getElementById('questionsContainer');
+    container.addEventListener('input', updateJSON);
+    container.addEventListener('change', updateJSON);
+});
+
+// Validation avant soumission
+document.querySelector('form').addEventListener('submit', function(e) {
+    updateJSON();
+    const jsonValue = document.getElementById('questionsQcmHidden').value;
+    
+    if (!jsonValue || jsonValue === '[]') {
+        e.preventDefault();
+        alert('Vous devez ajouter au moins une question complète au QCM');
+        return false;
+    }
+    
+    const questions = JSON.parse(jsonValue);
+    if (questions.length < 1) {
+        e.preventDefault();
+        alert('Vous devez ajouter au moins une question complète au QCM');
+        return false;
+    }
 });
 </script>
 

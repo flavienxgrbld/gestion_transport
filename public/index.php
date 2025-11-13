@@ -44,7 +44,7 @@ if ($path === '/portail/brinks') {
 // Route: déconnexion
 if ($path === '/logout') {
     logout();
-    header('Location: /login');
+    header('Location: /');
     exit;
 }
 

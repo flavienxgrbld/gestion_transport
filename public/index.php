@@ -35,6 +35,32 @@ if ($path === '/login') {
     exit;
 }
 
+// Route: page de connexion pour portail entreprise
+if ($path === '/login/entreprise') {
+    if (is_logged_in()) {
+        header('Location: /portail/entreprise');
+        exit;
+    }
+    require __DIR__ . '/../templates/login_entreprise.php';
+    exit;
+}
+
+// Route: page de connexion pour portail état
+if ($path === '/login/etat') {
+    if (is_logged_in()) {
+        // si connecté mais pas autorisé, rediriger sur /
+        $user = current_user();
+        if (in_array($user['role'], ['etat', 'admin'])) {
+            header('Location: /portail/etat');
+        } else {
+            header('Location: /');
+        }
+        exit;
+    }
+    require __DIR__ . '/../templates/login_etat.php';
+    exit;
+}
+
 // Route: portail Brinks (redirection vers la page de connexion)
 if ($path === '/portail/brinks') {
     header('Location: /login');

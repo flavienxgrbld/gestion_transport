@@ -1,3 +1,35 @@
+<?php
+// Déterminer le branding et le lien dashboard selon le contexte (portail entreprise)
+$brand = 'BRINKS';
+$dashboard_link = '/dashboard';
+if (function_exists('is_logged_in') && is_logged_in()) {
+  $user = current_user();
+  if (!empty($user['organisation_id'])) {
+    // Essayer de récupérer le nom de l'organisation
+    if (function_exists('get_db')) {
+      try {
+        $db = get_db();
+        $stmt = $db->prepare('SELECT nom FROM organisations WHERE id = ? LIMIT 1');
+        $stmt->execute([$user['organisation_id']]);
+        $org = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($org && !empty($org['nom'])) {
+          $brand = $org['nom'];
+        } else {
+          $brand = 'Entreprise #' . $user['organisation_id'];
+        }
+      } catch (Exception $e) {
+        // Ne pas casser l'affichage si la DB échoue
+        $brand = 'Entreprise #' . $user['organisation_id'];
+      }
+    } else {
+      $brand = 'Entreprise #' . $user['organisation_id'];
+    }
+
+    $dashboard_link = '/entreprise/dashboard';
+  }
+}
+?>
+
 <!doctype html>
 <html lang="fr">
 <head>
@@ -248,13 +280,13 @@
   </style>
 </head>
 <body>
-  <div class="nav">
+    <div class="nav">
     <div class="nav-content">
-      <div class="nav-brand">BRINKS</div>
+      <div class="nav-brand"><?= htmlspecialchars($brand) ?></div>
       <div class="nav-links">
         <?php if (is_logged_in()): ?>
           <a href="/profil" style="margin-right:15px;font-weight:600">👤 <?php echo htmlspecialchars(current_user()['nom'] ?? current_user()['email']); ?></a>
-          <a href="/dashboard">Dashboard</a>
+          <a href="<?= htmlspecialchars($dashboard_link) ?>">Dashboard</a>
           <a href="/convois">Convois</a>
           <a href="/coffre">Coffre</a>
           

@@ -19,13 +19,25 @@ require __DIR__ . '/../src/auth.php';
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
 
+// Route: page d'accueil - sélection des portails
+if ($path === '/') {
+    require __DIR__ . '/../templates/portails.php';
+    exit;
+}
+
 // Route: page de connexion
-if ($path === '/' || $path === '/login') {
+if ($path === '/login') {
     if (is_logged_in()) {
         header('Location: /dashboard');
         exit;
     }
     require __DIR__ . '/../templates/login.php';
+    exit;
+}
+
+// Route: portail Brinks (redirection vers la page de connexion)
+if ($path === '/portail/brinks') {
+    header('Location: /login');
     exit;
 }
 

@@ -953,6 +953,61 @@ if (preg_match('#^/admin/sessions/(\d+)/presences$#', $path, $matches) && curren
     exit;
 }
 
+// Route: portail entreprise (par organisation) - accessible à tous les utilisateurs connectés
+if ($path === '/portail/entreprise') {
+    $user = current_user();
+    $db = get_db();
+
+    // Statistiques par organisation
+    $stmt = $db->prepare('SELECT COUNT(*) as total_convois FROM convois WHERE organisation_id = ?');
+    $stmt->execute([$user['organisation_id']]);
+    $total_convois = $stmt->fetch(PDO::FETCH_ASSOC)['total_convois'];
+
+    $stmt = $db->prepare('SELECT COUNT(*) as total_users FROM users WHERE organisation_id = ?');
+    $stmt->execute([$user['organisation_id']]);
+    $total_users = $stmt->fetch(PDO::FETCH_ASSOC)['total_users'];
+
+    $stmt = $db->prepare("SELECT COUNT(DISTINCT i.user_id) as total_certifies
+        FROM inscriptions_formation i
+        JOIN sessions_formation s ON i.session_id = s.id
+        WHERE s.formation_id IS NOT NULL AND i.resultat = 'reussi' AND i.date_expiration > NOW() AND s.formation_id IS NOT NULL
+        AND EXISTS (SELECT 1 FROM users u WHERE u.id = i.user_id AND u.organisation_id = ?)" );
+    $stmt->execute([$user['organisation_id']]);
+    $total_certifies = $stmt->fetch(PDO::FETCH_ASSOC)['total_certifies'];
+
+    require __DIR__ . '/../templates/portail_entreprise.php';
+    exit;
+}
+
+// Route: portail état (global) - restreint aux users avec rôle 'etat' ou 'admin'
+if ($path === '/portail/etat') {
+    $user = current_user();
+    if (!in_array($user['role'], ['etat', 'admin'])) {
+        http_response_code(403);
+        echo "Accès refusé";
+        exit;
+    }
+
+    $db = get_db();
+
+    // Statistiques globales
+    $stmt = $db->query('SELECT COUNT(*) as total_convois FROM convois');
+    $total_convois = $stmt->fetch(PDO::FETCH_ASSOC)['total_convois'];
+
+    $stmt = $db->query('SELECT COUNT(*) as total_users FROM users');
+    $total_users = $stmt->fetch(PDO::FETCH_ASSOC)['total_users'];
+
+    $stmt = $db->query("SELECT COUNT(*) as sanctions_actives FROM sanctions WHERE statut = 'active'");
+    $sanctions_actives = $stmt->fetch(PDO::FETCH_ASSOC)['sanctions_actives'];
+
+    // Taux de conformité aux formations obligatoires (approximatif)
+    $stmt = $db->query("SELECT COUNT(DISTINCT i.user_id) as certifies FROM inscriptions_formation i WHERE i.resultat = 'reussi'");
+    $certifies = $stmt->fetch(PDO::FETCH_ASSOC)['certifies'];
+
+    require __DIR__ . '/../templates/portail_etat.php';
+    exit;
+}
+
 // 404 par défaut
 http_response_code(404);
 echo "Page non trouvée";

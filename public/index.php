@@ -1090,6 +1090,37 @@ if ($path === '/portail/etat') {
     exit;
 }
 
+// Route: portail administration - accès réservé aux admins
+if ($path === '/portail/admin') {
+    $user = current_user();
+    if ($user['role'] !== 'admin') {
+        http_response_code(403);
+        echo "Accès refusé";
+        exit;
+    }
+
+    $db = get_db();
+
+    // Statistiques rapides
+    $stmt = $db->query('SELECT COUNT(*) as total_users FROM users');
+    $total_users = $stmt->fetch(PDO::FETCH_ASSOC)['total_users'];
+
+    $stmt = $db->query('SELECT COUNT(*) as total_organisations FROM organisations');
+    $total_organisations = $stmt->fetch(PDO::FETCH_ASSOC)['total_organisations'];
+
+    // Liste des utilisateurs
+    $stmt = $db->prepare('SELECT u.*, o.nom as organisation_nom FROM users u LEFT JOIN organisations o ON u.organisation_id = o.id ORDER BY u.created_at DESC');
+    $stmt->execute();
+    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Pour le formulaire de création on fournit la liste des organisations
+    $stmt = $db->query('SELECT id, nom FROM organisations ORDER BY nom');
+    $organisations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    require __DIR__ . '/../templates/admin/portail.php';
+    exit;
+}
+
 // 404 par défaut
 http_response_code(404);
 echo "Page non trouvée";

@@ -52,6 +52,7 @@
       background: none;
       border: none;
       padding: 0;
+      padding-bottom: 12px;
     }
     .dropdown-toggle:hover {
       text-decoration: underline;
@@ -65,8 +66,9 @@
       min-width: 200px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
       border-radius: 4px;
-      margin-top: 8px;
+      margin-top: 0;
       z-index: 1000;
+      padding-top: 4px;
     }
     .dropdown-menu a {
       color: #333;
@@ -76,8 +78,12 @@
       margin: 0;
       border-bottom: 1px solid #eee;
     }
+    .dropdown-menu a:first-child {
+      border-radius: 4px 4px 0 0;
+    }
     .dropdown-menu a:last-child {
       border-bottom: none;
+      border-radius: 0 0 4px 4px;
     }
     .dropdown-menu a:hover {
       background: #f5f7fa;

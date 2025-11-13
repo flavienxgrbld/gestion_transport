@@ -250,7 +250,7 @@
 <body>
   <div class="nav">
     <div class="nav-content">
-      <div class="nav-brand">Gestion Convois - BRINKS</div>
+      <div class="nav-brand">BRINKS</div>
       <div class="nav-links">
         <?php if (is_logged_in()): ?>
           <a href="/profil" style="margin-right:15px;font-weight:600">👤 <?php echo htmlspecialchars(current_user()['nom'] ?? current_user()['email']); ?></a>

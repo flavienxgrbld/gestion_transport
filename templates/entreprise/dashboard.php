@@ -4,7 +4,7 @@ ob_start();
 ?>
 
 <div class="card">
-  <h2>Dashboard - <?= htmlspecialchars(current_user()['organisation_id'] ? 'Organisation #' . current_user()['organisation_id'] : '') ?></h2>
+  <h2>Dashboard - <?= htmlspecialchars($organisation_nom) ?></h2>
   <p>Bienvenue sur le tableau de bord dédié à votre organisation. Ce tableau affiche des indicateurs ciblés et des actions rapides.</p>
 
   <div class="stats" style="margin-top:16px;">

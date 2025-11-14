@@ -5,7 +5,7 @@ ob_start();
 
 <div class="card">
   <h2>Portail Entreprise</h2>
-  <p>Organisation: <strong><?= htmlspecialchars(current_user()['organisation_id']) ?></strong></p>
+  <p>Organisation: <strong><?= htmlspecialchars($organisation_nom) ?></strong></p>
   <div class="stats" style="margin-top:16px;">
     <div class="stat-card">
       <div class="stat-label">Convois (total organisation)</div>

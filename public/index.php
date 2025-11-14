@@ -224,6 +224,12 @@ if ($path === '/entreprise/dashboard') {
         exit;
     }
 
+    // Récupérer le nom de l'organisation
+    $stmt = $db->prepare('SELECT nom FROM organisations WHERE id = ?');
+    $stmt->execute([$user['organisation_id']]);
+    $organisation = $stmt->fetch(PDO::FETCH_ASSOC);
+    $organisation_nom = $organisation ? $organisation['nom'] : 'Organisation inconnue';
+
     // Statistiques spécifiques à l'organisation
     $stmt = $db->prepare('SELECT COUNT(*) as total_convois FROM convois WHERE organisation_id = ?');
     $stmt->execute([$user['organisation_id']]);
@@ -1116,6 +1122,12 @@ if (preg_match('#^/admin/sessions/(\d+)/presences$#', $path, $matches) && curren
 if ($path === '/portail/entreprise') {
     $user = current_user();
     $db = get_db();
+
+    // Récupérer le nom de l'organisation
+    $stmt = $db->prepare('SELECT nom FROM organisations WHERE id = ?');
+    $stmt->execute([$user['organisation_id']]);
+    $organisation = $stmt->fetch(PDO::FETCH_ASSOC);
+    $organisation_nom = $organisation ? $organisation['nom'] : 'Organisation inconnue';
 
     // Statistiques par organisation
     $stmt = $db->prepare('SELECT COUNT(*) as total_convois FROM convois WHERE organisation_id = ?');

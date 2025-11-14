@@ -2,7 +2,7 @@
 // Layout dynamique par organisation
 // Récupère les paramètres de branding de l'organisation de l'utilisateur connecté
 
-$brand = 'Mon Entreprise';
+$brand = 'Portail Entreprise';
 $couleur_primaire = '#19692d';
 $couleur_secondaire = '#f4fff7';
 $logo_url = null;

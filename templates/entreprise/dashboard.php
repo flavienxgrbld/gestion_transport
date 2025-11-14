@@ -54,5 +54,5 @@ ob_start();
 
 <?php
 $content = ob_get_clean();
-require __DIR__ . '/../layout_entreprise.php';
+require __DIR__ . '/../layout_organisation.php';
 ?>

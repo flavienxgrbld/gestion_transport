@@ -180,7 +180,6 @@ if (function_exists('is_logged_in') && is_logged_in()) {
         <?php if (is_logged_in()): ?>
           <a href="/profil"><?= htmlspecialchars(current_user()['nom'] ?? current_user()['email']); ?></a>
           <a href="/entreprise/dashboard">Dashboard</a>
-          <a href="/convois">Convois</a>
           <a href="/formations">Formations</a>
           <a href="/logout">Déconnexion</a>
         <?php else: ?>

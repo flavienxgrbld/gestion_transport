@@ -246,9 +246,22 @@ if ($path === '/entreprise/dashboard') {
     exit;
 }
 
-// Route: liste des convois
+// Route: liste des convois (BRINKS uniquement)
 if ($path === '/convois') {
+    $user = current_user();
     $db = get_db();
+    
+    // Vérifier que l'utilisateur appartient à BRINKS
+    $stmt = $db->prepare('SELECT nom FROM organisations WHERE id = ?');
+    $stmt->execute([$user['organisation_id']]);
+    $org = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$org || strtoupper($org['nom']) !== 'BRINKS') {
+        http_response_code(403);
+        echo "Accès refusé - Fonctionnalité réservée à BRINKS";
+        exit;
+    }
+    
     $stmt = $db->prepare('SELECT c.*, o.nom as organisation_nom FROM convois c JOIN organisations o ON c.organisation_id = o.id ORDER BY c.created_at DESC');
     $stmt->execute();
     $convois = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -256,10 +269,23 @@ if ($path === '/convois') {
     exit;
 }
 
-// Route: voir un convoi spécifique
+// Route: voir un convoi spécifique (BRINKS uniquement)
 if (preg_match('#^/convois/(\d+)$#', $path, $m)) {
-    $id = (int)$m[1];
+    $user = current_user();
     $db = get_db();
+    
+    // Vérifier que l'utilisateur appartient à BRINKS
+    $stmt = $db->prepare('SELECT nom FROM organisations WHERE id = ?');
+    $stmt->execute([$user['organisation_id']]);
+    $org = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$org || strtoupper($org['nom']) !== 'BRINKS') {
+        http_response_code(403);
+        echo "Accès refusé - Fonctionnalité réservée à BRINKS";
+        exit;
+    }
+    
+    $id = (int)$m[1];
     
     $stmt = $db->prepare('SELECT c.*, o.nom as organisation_nom FROM convois c JOIN organisations o ON c.organisation_id = o.id WHERE c.id = ?');
     $stmt->execute([$id]);
@@ -280,14 +306,27 @@ if (preg_match('#^/convois/(\d+)$#', $path, $m)) {
     exit;
 }
 
-// Route: créer un convoi
+// Route: créer un convoi (BRINKS uniquement)
 if ($path === '/convois/create') {
+    $user = current_user();
+    $db = get_db();
+    
+    // Vérifier que l'utilisateur appartient à BRINKS
+    $stmt = $db->prepare('SELECT nom FROM organisations WHERE id = ?');
+    $stmt->execute([$user['organisation_id']]);
+    $org = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$org || strtoupper($org['nom']) !== 'BRINKS') {
+        http_response_code(403);
+        echo "Accès refusé - Fonctionnalité réservée à BRINKS";
+        exit;
+    }
+    
     if ($method === 'POST') {
         $type = $_POST['type'] ?? 'recolte';
         $quantite_prevue = (int)($_POST['quantite_prevue'] ?? 0);
         $notes = $_POST['notes'] ?? null;
         
-        $db = get_db();
         $stmt = $db->prepare('INSERT INTO convois (organisation_id, type, quantite_prevue, notes) VALUES (?, ?, ?, ?)');
         $stmt->execute([current_user()['organisation_id'], $type, $quantite_prevue, $notes]);
         
@@ -299,16 +338,23 @@ if ($path === '/convois/create') {
     exit;
 }
 
-// Route: clôturer un convoi
+// Route: clôturer un convoi (BRINKS uniquement)
 if (preg_match('#^/convois/(\d+)/close$#', $path, $m)) {
-    $id = (int)$m[1];
+    $user = current_user();
+    $db = get_db();
     
-    if ($method !== 'POST') {
-        http_response_code(405);
+    // Vérifier que l'utilisateur appartient à BRINKS
+    $stmt = $db->prepare('SELECT nom FROM organisations WHERE id = ?');
+    $stmt->execute([$user['organisation_id']]);
+    $org = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$org || strtoupper($org['nom']) !== 'BRINKS') {
+        http_response_code(403);
+        echo "Accès refusé - Fonctionnalité réservée à BRINKS";
         exit;
     }
     
-    $db = get_db();
+    $id = (int)$m[1];
     
     try {
         $db->beginTransaction();
@@ -399,9 +445,21 @@ if (preg_match('#^/convois/(\d+)/close$#', $path, $m)) {
     }
 }
 
-// Route: page du coffre
+// Route: page du coffre (BRINKS uniquement)
 if ($path === '/coffre') {
+    $user = current_user();
     $db = get_db();
+    
+    // Vérifier que l'utilisateur appartient à BRINKS
+    $stmt = $db->prepare('SELECT nom FROM organisations WHERE id = ?');
+    $stmt->execute([$user['organisation_id']]);
+    $org = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$org || strtoupper($org['nom']) !== 'BRINKS') {
+        http_response_code(403);
+        echo "Accès refusé - Fonctionnalité réservée à BRINKS";
+        exit;
+    }
     
     $stmt = $db->query('SELECT * FROM coffre LIMIT 1');
     $coffre = $stmt->fetch(PDO::FETCH_ASSOC);

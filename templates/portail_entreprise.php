@@ -23,8 +23,6 @@ ob_start();
 
   <h3 style="margin-top:20px;">Actions rapides</h3>
   <div style="display:flex;gap:10px;margin-top:10px;">
-    <a class="btn" href="/convois">Voir convois</a>
-    <a class="btn" href="/utilisateurs">Voir utilisateurs</a>
     <a class="btn" href="/formations">Catalogue formations</a>
   </div>
 </div>

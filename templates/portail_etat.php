@@ -27,7 +27,6 @@ ob_start();
 
   <h3 style="margin-top:20px;">Actions rapides</h3>
   <div style="display:flex;gap:10px;margin-top:10px;">
-    <a class="btn" href="/convois">Voir convois</a>
     <a class="btn" href="/sanctions">Voir sanctions</a>
     <a class="btn" href="/admin/sessions">Gérer sessions</a>
   </div>

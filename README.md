@@ -1,7 +1,7 @@
 # Gestion Convois - MVP
 
 Application web PHP pour gérer les convois de palettes/cartons (récolte, traitement, revente) avec un coffre central BRINKS.
-+ test 
++ test n8n
 ## Pré-requis
 - PHP 8.0+ (avec extensions PDO, pdo_mysql)
 - MariaDB 10.6+
